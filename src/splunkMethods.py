@@ -21,7 +21,7 @@ def connect():
 		autologin=True)
 
 
-def newSearch(searchString):
+def runSearch(searchString):
 	job = service.jobs.create("search " + searchString)
 	resultsToReturn = []
 
@@ -38,7 +38,7 @@ def newSearch(searchString):
 	return resultsToReturn
 	
 	
-def savedSearch(savedSearchName):
+def runSavedSearch(savedSearchName):
 	try: 
 		mySavedSearch = service.saved_searches[savedSearchName]
 		job = mySavedSearch.dispatch()
