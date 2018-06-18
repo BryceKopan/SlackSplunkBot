@@ -13,6 +13,58 @@ starterbot_id = None
 RTM_READ_DELAY = 1 # 1 second delay between reading from RTM
 MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
 
+def handle_command(command, channel):
+	"""
+		Executes bot command if the command is known
+	"""
+	# Commands	
+	if command.startswith("print"):
+		postMessage(command.split("print", 1)[1], channel)
+
+	elif command.startswith("help"):
+		postMessage("I don't know anything, figure it out. :)", channel)
+
+	elif command.startswith("adminhelp"):
+		postMessage("Commands: restart, shutdown", channel)
+
+	elif command.startswith("restart"):
+		postMessage("Restarting", channel)
+		try:
+			os.execl(sys.executable, 'python', __file__, *sys.argv[1:])
+		except Exception as e:
+			postMessage("Error Restarting", channel)
+			print (e)
+
+	elif command.startswith("shutdown"):
+		postMessage("Shutting Down", channel)
+		sys.exit("Shutdown command used")
+
+	elif command.startswith("what do you look like?"):
+		postImage("SplunkBot.png", "Self Portrait", channel)
+
+	else:
+		postMessage("Not sure what you mean. Try *{}*.".format("help"), channel)
+
+def postMessage(message, channel):
+	slack_client.api_call(
+	"chat.postMessage",
+	channel=channel,
+	text=message
+	)
+
+def postImage(image_path, image_title, channel):
+	try:
+		with open(image_path, 'rb') as file_content:
+			slack_client.api_call(
+				"files.upload",
+				channels=channel,
+				file=file_content,
+				title=image_title
+			)
+	except Exception as e:
+		postMessage("Error Posting Image", channel)
+		print (e)
+
 def parse_bot_commands(slack_events):
 	"""
 		Parses a list of events coming from the Slack RTM API to find bot commands.
@@ -34,54 +86,6 @@ def parse_direct_mention(message_text):
 	matches = re.search(MENTION_REGEX, message_text)
 	# the first group contains the username, the second group contains the remaining message
 	return (matches.group(1), matches.group(2).strip()) if matches else (None, None)
-
-def handle_command(command, channel):
-	"""
-		Executes bot command if the command is known
-	"""
-	# Default response is help text for the user
-	default_response = "Not sure what you mean. Try *{}*.".format("help")
-
-	# Finds and executes the given command, filling in response
-	response = None
-	
-	# Commands	
-	if command.startswith("print"):
-		response = command.split("print", 1)[1]
-	
-	if command.startswith("help"):
-		response = "I don't know anything, figure it out. :)"
-
-	if command.startswith("adminhelp"):
-		response = "Commands: restart, shutdown"
-		
-	if command.startswith("restart"):
-		response = "Restarting"
-		
-	if command.startswith("shutdown"):
-		response = "Shutting Down"
-		
-	# Sends the response back to the channel
-	slack_client.api_call(
-		"chat.postMessage",
-		channel=channel,
-		text=response or default_response
-	)
-	
-	#After response actions
-	
-	if command.startswith("restart"):
-		try:
-			os.execl(sys.executable, 'python', __file__, *sys.argv[1:])
-		except Exception as e:
-			slack_client.api_call(
-			"chat.postMessage",
-			channel=channel,
-			text="Error Restarting : " + e
-			)
-			
-	if command.startswith("shutdown"):
-		sys.exit("Shutdown command used")
 
 if __name__ == "__main__":
 	if slack_client.rtm_connect(with_team_state=False):
