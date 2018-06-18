@@ -8,8 +8,8 @@ service = None
 def connect():
 	HOST = "localhost"
 	PORT = 8089
-	USERNAME = os.environ['SPLUNK_USERNAME']
-	PASSWORD = os.environ['SPLUNK_PASSWORD']
+	USERNAME = os.environ.get('SPLUNK_USERNAME')
+	PASSWORD = os.environ.get('SPLUNK_PASSWORD')
 
 	# Create a Service instance and log in
 	global service
