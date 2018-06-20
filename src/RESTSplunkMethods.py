@@ -2,7 +2,7 @@ import os, urllib, httplib2, json
 from time import sleep
 from xml.dom import minidom
 
-baseurl = 'https://localhost:8089'
+baseurl = 'https://splunk-itest.ercot.com:8089'
 username = os.environ.get('SPLUNK_USERNAME')
 password = os.environ.get('SPLUNK_PASSWORD')
 myhttp = httplib2.Http(disable_ssl_certificate_validation=True)

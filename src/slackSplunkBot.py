@@ -1,101 +1,23 @@
-import os
-import time
-import re
-import sys
-from slackclient import SlackClient
+import os, time, traceback
+import SlackAPI as Slack
+import RESTSplunkMethods as Splunk
+import Command
 
-# instantiate Slack client
-slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
-# starterbot's user ID in Slack: value is assigned after the bot starts up
-starterbot_id = None
+SLACK_BOT_TOKEN = os.environ.get('SLACK_BOT_TOKEN')
 
 # constants
 RTM_READ_DELAY = 1 # 1 second delay between reading from RTM
-MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
-
-def handle_command(command, channel):
-	"""
-		Executes bot command if the command is known
-	"""
-	# Commands	
-	if command.startswith("print"):
-		postMessage(command.split("print", 1)[1], channel)
-
-	elif command.startswith("help"):
-		postMessage("I don't know anything, figure it out. :)", channel)
-
-	elif command.startswith("adminhelp"):
-		postMessage("Commands: restart, shutdown", channel)
-
-	elif command.startswith("restart"):
-		postMessage("Restarting", channel)
-		try:
-			os.execl(sys.executable, 'python', __file__, *sys.argv[1:])
-		except Exception as e:
-			postMessage("Error Restarting", channel)
-			print (e)
-
-	elif command.startswith("shutdown"):
-		postMessage("Shutting Down", channel)
-		sys.exit("Shutdown command used")
-
-	elif command.startswith("what do you look like?"):
-		postImage("SplunkBot.png", "Self Portrait", channel)
-
-	else:
-		postMessage("Not sure what you mean. Try *{}*.".format("help"), channel)
-
-def postMessage(message, channel):
-	slack_client.api_call(
-	"chat.postMessage",
-	channel=channel,
-	text=message
-	)
-
-def postImage(image_path, image_title, channel):
-	try:
-		with open(image_path, 'rb') as file_content:
-			slack_client.api_call(
-				"files.upload",
-				channels=channel,
-				file=file_content,
-				title=image_title
-			)
-	except Exception as e:
-		postMessage("Error Posting Image", channel)
-		print (e)
-
-def parse_bot_commands(slack_events):
-	"""
-		Parses a list of events coming from the Slack RTM API to find bot commands.
-		If a bot command is found, this function returns a tuple of command and channel.
-		If its not found, then this function returns None, None.
-	"""
-	for event in slack_events:
-		if event["type"] == "message" and not "subtype" in event:
-			user_id, message = parse_direct_mention(event["text"])
-			if user_id == starterbot_id:
-				return message, event["channel"]
-	return None, None
-
-def parse_direct_mention(message_text):
-	"""
-		Finds a direct mention (a mention that is at the beginning) in message text
-		and returns the user ID which was mentioned. If there is no direct mention, returns None
-	"""
-	matches = re.search(MENTION_REGEX, message_text)
-	# the first group contains the username, the second group contains the remaining message
-	return (matches.group(1), matches.group(2).strip()) if matches else (None, None)
 
 if __name__ == "__main__":
-	if slack_client.rtm_connect(with_team_state=False):
-		print("SlackSplunkBot connected and running!")
-		# Read bot's user ID by calling Web API method `auth.test`
-		starterbot_id = slack_client.api_call("auth.test")["user_id"]
-		while True:
-			command, channel = parse_bot_commands(slack_client.rtm_read())
-			if command:
-				handle_command(command, channel)
-			time.sleep(RTM_READ_DELAY)
-	else:
-		print("Connection failed. Exception traceback printed above.")
+	Slack.connect(SLACK_BOT_TOKEN)
+	botID = Slack.getBotID()
+	print("\nSlackSplunkBot connected to Slack")
+	
+	Splunk.connect()
+	print("\nSlackSplunkBot connected to Splunk")
+	
+	while True:
+		command, channel = Command.parseBotCommands(Slack.getSlackEvents(), botID)
+		if command:
+			Command.handleCommand(command, channel)
+		time.sleep(RTM_READ_DELAY)
