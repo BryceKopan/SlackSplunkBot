@@ -41,7 +41,7 @@ def runSearch(searchString):
 def runSavedSearch(savedSearchName):
 	try: 
 		mySavedSearch = service.saved_searches[savedSearchName]
-		job = mySavedSearch.dispatch()
+		job = mySavedSearch.dispatch(trigger_actions=True)
 		resultsToReturn = []
 		
 		while not job.is_done():
@@ -67,6 +67,11 @@ def listSavedSearches():
 		resultsToReturn.append(savedSearch.name)
 		
 	return resultsToReturn
+
+
+
+	
+	
 	
 	
 
