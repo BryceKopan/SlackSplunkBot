@@ -106,16 +106,18 @@ def runSearch(searchString):
 # dashboard name is not always the same as the dashboard display name. Run listDashboardNames to get the correct name.
 # namespace is the app where the dashboard is located.	
 def getDashboardPDF(dashboard,namespace):
+	print("Working on getting dashboard PDF. This may take a while.")
 	response, content = myhttp.request(
 		baseurl + ("/services/pdfgen/render?input-dashboard=%s&namespace=%s&paper-size=a4-landscape" % (dashboard, namespace)), 
 		'POST',
 		headers={'Authorization':('Splunk %s' % sessionKey)})
 	
-	if response.status == 200:	
-		pdfFile = open(('pdf_files/%s.pdf' % dashboard),'wb')
+	if response.status == 200:
+		pdfFileName = ('pdf_files/%s_%s.pdf' % (namespace, dashboard))
+		pdfFile = open(pdfFileName,'wb')
 		pdfFile.write(content)
 		pdfFile.close()
-		return('pdf_files/%s.pdf' % dashboard)
+		return pdfFileName
 	else:
 		return("Could not find dashboard with name '%s'" % dashboard)
 	
@@ -139,3 +141,10 @@ def listDashboardNames(user, appName):
 	else:
 		errorMessage = decodedContent["messages"][0]["text"]
 		return errorMessage
+
+		
+# pass the output of getDashboardPDF as filePath
+def deleteDashboardPDFFile(filePath):
+	os.remove(filePath)
+	print("Deleted " + filePath)
+	return
