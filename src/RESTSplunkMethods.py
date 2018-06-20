@@ -8,16 +8,19 @@ password = os.environ.get('SPLUNK_PASSWORD')
 myhttp = httplib2.Http(disable_ssl_certificate_validation=True)
 sessionKey = None
 
-
 def connect():
-	content = myhttp.request(
+	response, content = myhttp.request(
 		baseurl + '/services/auth/login',
 		'POST',
 		headers={},
-		body=urllib.parse.urlencode({'username':username, 'password':password}))[1]
+		body=urllib.parse.urlencode({'username':username, 'password':password, 'autoLogin':True}))
 	
-	global sessionKey
-	sessionKey = minidom.parseString(content).getElementsByTagName('sessionKey')[0].childNodes[0].nodeValue
+	if response.status == 200:
+		global sessionKey
+		sessionKey = minidom.parseString(content).getElementsByTagName('sessionKey')[0].childNodes[0].nodeValue
+		return
+	else:
+		raise Exception("Service returned %s while trying to connect" % response.status)
 	
 		
 def getSearchStatus(sid):
@@ -54,18 +57,23 @@ def getSearchResults(sid):
 	
 
 def listSavedSearches():
-	content = myhttp.request(
+	response, content = myhttp.request(
 		baseurl + "/services/saved/searches?output_mode=json", 
 		'GET', 
-		headers={'Authorization':('Splunk %s' % sessionKey)})[1]
+		headers={'Authorization':('Splunk %s' % sessionKey)})
 
 	decodedContent = json.loads(content.decode('utf-8'))
-	listOfSavedSearches = []
 	
-	for entry in decodedContent["entry"]:
-		listOfSavedSearches.append(entry["name"])
-	
-	return listOfSavedSearches	
+	if response.status == 200:
+		listOfSavedSearches = []
+		
+		for entry in decodedContent["entry"]:
+			listOfSavedSearches.append(entry["name"])
+		
+		return listOfSavedSearches
+	else:
+		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
+		return errorMessage
 	
 
 def runSavedSearch(savedSearchName):
