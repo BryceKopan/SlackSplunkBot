@@ -1,5 +1,5 @@
-import os, urllib, httplib2, re, json 
-from time import localtime,strftime, sleep
+import os, urllib, httplib2, json 
+from time import sleep
 from xml.dom import minidom
 
 baseurl = 'https://localhost:8089'
