@@ -53,7 +53,7 @@ def getSearchResults(sid):
 		return json.loads(content.decode('utf-8'))["results"]
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
-		return errorMessage
+		raise Exception(errorMessage)
 	
 
 def listSavedSearches():
@@ -73,7 +73,7 @@ def listSavedSearches():
 		return listOfSavedSearches
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
-		return errorMessage
+		raise Exception(errorMessage)
 	
 
 def runSavedSearch(savedSearchName):
@@ -90,7 +90,7 @@ def runSavedSearch(savedSearchName):
 		return getSearchResults(sid)
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
-		return errorMessage
+		raise Exception(errorMessage)
 
 	
 def runSearch(searchString): 
@@ -108,7 +108,7 @@ def runSearch(searchString):
 		return getSearchResults(sid)
 	else:		
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
-		return errorMessage
+		raise Exception(errorMessage)
 
 		
 # dashboard name is not always the same as the dashboard display name. Run listDashboardNames to get the correct name.
@@ -127,7 +127,7 @@ def getDashboardPDF(dashboard,namespace):
 		pdfFile.close()
 		return pdfFileName
 	else:
-		return("Could not find dashboard with name '%s'" % dashboard)
+		raise Exception("Could not find dashboard with name '%s'" % dashboard)
 	
 	
 def listDashboardNames(user, appName):
@@ -148,8 +148,7 @@ def listDashboardNames(user, appName):
 		return listOfDashboards
 	else:
 		errorMessage = decodedContent["messages"][0]["text"]
-		return errorMessage
-
+		raise Exception(errorMessage)
 		
 # pass the output of getDashboardPDF as filePath
 def deleteDashboardPDFFile(filePath):
