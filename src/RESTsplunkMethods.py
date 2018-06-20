@@ -41,12 +41,16 @@ def getSearchStatus(sid):
 def getSearchResults(sid):
 	getSearchStatus(sid)
 	
-	content = myhttp.request(
+	response, content = myhttp.request(
 		(baseurl + "/services/search/jobs/%s/results?output_mode=json" % sid), 
 		'GET', 
-		headers={'Authorization':('Splunk %s' % sessionKey)})[1]
+		headers={'Authorization':('Splunk %s' % sessionKey)})
 	
-	return json.loads(content.decode('utf-8'))["results"]
+	if response.status == 200:
+		return json.loads(content.decode('utf-8'))["results"]
+	else:
+		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
+		return errorMessage
 	
 
 def listSavedSearches():
@@ -97,6 +101,7 @@ def runSearch(searchString):
 	else:		
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		return errorMessage
+
 		
 # dashboard name is not always the same as the dashboard display name. Run listDashboardNames to get the correct name.
 # namespace is the app where the dashboard is located.	
