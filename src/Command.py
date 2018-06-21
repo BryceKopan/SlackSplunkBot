@@ -1,6 +1,7 @@
 import re, inspect
 import SlackAPI as Slack
 import commands.BotCommands as BotCommands
+import commands.SplunkCommands as SplunkCommands
 
 MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
 
@@ -27,46 +28,21 @@ def parseDirectMention(messageText):
 	return (matches.group(1), matches.group(2).strip()) if matches else (None, None)
 
 def handleCommand(command, channel):
-	botCommands = inspect.getmembers(BotCommands, inspect.isfunction)
-	
-	# commandNoSpaces = command.replace(" ", "_")
-
-	# print(type(command))
-	# print(command)
-	# print(commandNoSpaces)
+	botCommands = []
+	botCommands.extend(inspect.getmembers(BotCommands, inspect.isfunction))
+	botCommands.extend(inspect.getmembers(SplunkCommands, inspect.isfunction))
 	
 	for commandString, commandFunction in botCommands:
-		if(commandNoSpaces.startswith(commandString)):
+		commandString = commandString.replace("_", " ")
+		if(command.startswith(commandString)):
 			commandParameters = command.split(commandString, 1)[1].lstrip()
-			commandFunction(channel, commandParameters)
+			commandFunction(commandParameters, channel)
 			return
 	
-"""def handleCommand(command, channel):
-	# Commands	
-	if command.startswith("print"):
-		Slack.postMessage(command.split("print", 1)[1], channel)
-
-	elif command.startswith("help"):
-		Slack.postMessage("I don't know anything, figure it out. :)", channel)
-
-	elif command.startswith("adminhelp"):
-		Slack.postMessage("Commands: restart, shutdown", channel)
-
-	elif command.startswith("restart"):
-		Slack.postMessage("Restarting", channel)
-		try:
-			os.execl(sys.executable, 'python', __file__, *sys.argv[1:])
-		except Exception as e:
-			Slack.postMessage("Error Restarting", channel)
-			print (e)
-
-	elif command.startswith("shutdown"):
-		Slack.postMessage("Shutting Down", channel)
-		sys.exit("Shutdown command used")
-
-	elif command.startswith("what do you look like?"):
-		Slack.postImage("SplunkBot.png", "Self Portrait", channel)
-
+	if(command.startswith("help")):
+		for commandString, commandFunction in botCommands:
+			Slack.postMessage(commandString.replace("_", " "), channel)
 	else:
 		Slack.postMessage("Not sure what you mean. Try *{}*.".format("help"), channel)
-"""
+	
+	

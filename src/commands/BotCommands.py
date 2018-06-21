@@ -1,7 +1,14 @@
+import os, sys, time
 import SlackAPI as Slack
+import __main__
 
-def help(channel, commandParameters):
-	Slack.postMessage("New Command Structure Success", channel)
+def restart(commandParameters, channel):
+	Slack.postMessage("Restarting", channel)
+	os.execl(sys.executable, 'python', __main__.__file__, *sys.argv[1:])
 	
-def command_with_spaces(channel, commandParameters):
-	Slack.postMessage("Wooooo", channel)
+def shutdown(commandParameters, channel):
+	Slack.postMessage("Shutting Down", channel)
+	sys.exit("Shutdown command used")
+	
+def raise_error(commandParameters, channel):
+	raise Exception("Test Error")

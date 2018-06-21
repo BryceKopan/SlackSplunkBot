@@ -17,7 +17,7 @@ def getBotID():
 def getSlackEvents():
 	return slackClient.rtm_read()
 	
-def postMessage(message, channel):#channel, message):
+def postMessage(message, channel):
 	with warnings.catch_warnings():
 		warnings.simplefilter("ignore")
 		try:
@@ -30,7 +30,7 @@ def postMessage(message, channel):#channel, message):
 			print("\nError Posting Message\n")
 			raise
 			
-def postImage(channel, image_path, image_title):
+def postImage(image_path, image_title, channel):
 	with warnings.catch_warnings():
 		warnings.simplefilter("ignore")
 		try:

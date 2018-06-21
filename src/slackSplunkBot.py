@@ -19,5 +19,10 @@ if __name__ == "__main__":
 	while True:
 		command, channel = Command.parseBotCommands(Slack.getSlackEvents(), botID)
 		if command:
-			Command.handleCommand(command, channel)
+			try:
+				Command.handleCommand(command, channel)
+			except Exception:
+				Slack.postMessage("Error Running Command: {}".format(command), channel)
+				print("\nError Running Command: {}\n".format(command))
+				traceback.print_exc()
 		time.sleep(RTM_READ_DELAY)
