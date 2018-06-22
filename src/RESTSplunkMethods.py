@@ -3,11 +3,12 @@ from time import sleep
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
-baseurl = 'https://splunk-itest.ercot.com:8089'
+baseurl = 'https://localhost:8089'
 username = os.environ.get('SPLUNK_USERNAME')
 password = os.environ.get('SPLUNK_PASSWORD')
 myhttp = httplib2.Http(disable_ssl_certificate_validation=True)
 sessionKey = None
+searchTTL = 10
 
 
 def connect():
@@ -27,7 +28,9 @@ def connect():
 		
 def getSearchStatus(sid):
 	isNotDone = True
-	while isNotDone:
+	elapsedTime = 0
+	
+	while isNotDone and elapsedTime < searchTTL:
 		content = myhttp.request(
 			(baseurl + "/services/search/jobs/%s?output_mode=json" % sid), 
 			'GET', 
@@ -36,11 +39,15 @@ def getSearchStatus(sid):
 		searchStatus = json.loads(content.decode('utf-8'))
 		
 		if not searchStatus["entry"][0]["content"]["isDone"]:
+			elapsedTime += 1
 			sleep(1)
 		else:
 			isNotDone = False
 	
-	return
+	if elapsedTime >= searchTTL:
+		raise Exception("Search took too long. Try narrowing your time range")
+	else:
+		return
 
 	
 def getSearchResults(sid):
@@ -56,7 +63,7 @@ def getSearchResults(sid):
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
-	
+		
 
 def listSavedSearches():
 	response, content = myhttp.request(
@@ -100,13 +107,13 @@ def runSearch(searchString):
 		searchString = 'search ' + searchString
 
 	response, content = myhttp.request(
-		baseurl + '/services/search/jobs?output_mode=json',
+		(baseurl + '/services/search/jobs?output_mode=json&auto_cancel=%s' % searchTTL),
 		'POST',
 		headers={'Authorization': 'Splunk %s' % sessionKey},
 		body=urllib.parse.urlencode({'search': searchString}))
 	
 	if response.status == 201:
-		sid = json.loads(content.decode('utf-8'))["sid"]	
+		sid = json.loads(content.decode('utf-8'))["sid"]
 		return getSearchResults(sid)
 	else:		
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
