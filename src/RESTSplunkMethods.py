@@ -211,7 +211,31 @@ def listOptionalDashboardInputs(dashboard, namespace):
 		optionalDashboardInputs.append(input.attrib)
 		
 	return optionalDashboardInputs 
+
 	
+def listAppNames(*searchString):	
+	response, content = myhttp.request(
+		baseurl + "/services/apps/local?output_mode=json", 
+		'GET', 
+		headers={'Authorization':('Splunk %s' % sessionKey)})
+
+	decodedContent = json.loads(content.decode('utf-8'))
+	
+	if response.status == 200:
+		listOfApps = []
+		
+		if searchString:
+			for entry in decodedContent["entry"]:
+				if ("%s" % searchString).lower() in entry["name"].lower():
+					listOfApps.append(entry["name"])
+		else:
+			for entry in decodedContent["entry"]:
+				listOfApps.append(entry["name"])
+				
+		return listOfApps
+	else:
+		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
+		raise Exception(errorMessage)
 		
 
 	
