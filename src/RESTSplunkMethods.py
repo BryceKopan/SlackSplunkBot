@@ -65,24 +65,6 @@ def getSearchResults(sid):
 		raise Exception(errorMessage)
 		
 
-# def listSavedSearches():
-	# response, content = myhttp.request(
-		# baseurl + "/services/saved/searches?output_mode=json", 
-		# 'GET', 
-		# headers={'Authorization':('Splunk %s' % sessionKey)})
-
-	# decodedContent = json.loads(content.decode('utf-8'))
-	
-	# if response.status == 200:
-		# listOfSavedSearches = []
-		
-		# for entry in decodedContent["entry"]:
-			# listOfSavedSearches.append(entry["name"])
-		
-		# return listOfSavedSearches
-	# else:
-		# errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
-		# raise Exception(errorMessage)
 def listSavedSearches(*searchString):
 	response, content = myhttp.request(
 		baseurl + "/services/saved/searches?output_mode=json", 
