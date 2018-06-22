@@ -3,7 +3,7 @@ from time import sleep
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
-baseurl = 'https://localhost:8089'
+baseurl = 'https://splunk-itest.ercot.com:8089'
 username = os.environ.get('SPLUNK_USERNAME')
 password = os.environ.get('SPLUNK_PASSWORD')
 myhttp = httplib2.Http(disable_ssl_certificate_validation=True)
@@ -65,7 +65,25 @@ def getSearchResults(sid):
 		raise Exception(errorMessage)
 		
 
-def listSavedSearches():
+# def listSavedSearches():
+	# response, content = myhttp.request(
+		# baseurl + "/services/saved/searches?output_mode=json", 
+		# 'GET', 
+		# headers={'Authorization':('Splunk %s' % sessionKey)})
+
+	# decodedContent = json.loads(content.decode('utf-8'))
+	
+	# if response.status == 200:
+		# listOfSavedSearches = []
+		
+		# for entry in decodedContent["entry"]:
+			# listOfSavedSearches.append(entry["name"])
+		
+		# return listOfSavedSearches
+	# else:
+		# errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
+		# raise Exception(errorMessage)
+def listSavedSearches(*searchString):
 	response, content = myhttp.request(
 		baseurl + "/services/saved/searches?output_mode=json", 
 		'GET', 
@@ -76,9 +94,14 @@ def listSavedSearches():
 	if response.status == 200:
 		listOfSavedSearches = []
 		
-		for entry in decodedContent["entry"]:
-			listOfSavedSearches.append(entry["name"])
-		
+		if searchString:
+			for entry in decodedContent["entry"]:
+				if ("%s" % searchString).lower() in entry["name"].lower():
+					listOfSavedSearches.append(entry["name"])
+		else:
+			for entry in decodedContent["entry"]:
+				listOfSavedSearches.append(entry["name"])
+				
 		return listOfSavedSearches
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
