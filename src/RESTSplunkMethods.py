@@ -54,7 +54,7 @@ def getSearchResults(sid):
 	getSearchStatus(sid)
 	
 	response, content = myhttp.request(
-		(baseurl + "/services/search/jobs/%s/results?output_mode=json" % sid), 
+		(baseurl + "/services/search/jobs/%s/results?output_mode=json&count=0" % sid), 
 		'GET', 
 		headers={'Authorization':('Splunk %s' % sessionKey)})
 	
@@ -67,7 +67,7 @@ def getSearchResults(sid):
 
 def listSavedSearches(*searchString):
 	response, content = myhttp.request(
-		baseurl + "/services/saved/searches?output_mode=json", 
+		baseurl + "/services/saved/searches?output_mode=json&count=0", 
 		'GET', 
 		headers={'Authorization':('Splunk %s' % sessionKey)})
 
