@@ -12,3 +12,6 @@ def shutdown(commandParameters, channel):
 	
 def raise_error(commandParameters, channel):
 	raise Exception("Test Error")
+	
+def test(commandParameters, channel):
+	Slack.postMessage("Test \n new line", channel)
