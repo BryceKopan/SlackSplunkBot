@@ -29,6 +29,7 @@ def connect(urlPrefix, username, password):
 		raise Exception("Service returned %s while trying to connect" % response.status)
 
 
+		
 # ---------------------------------------- SEARCH METHODS ----------------------------------------	
 # Repeatedly retrieves the status of a search until the search completes or it times out (search timeout controlled by the 'searchTTL' variable set above) 
 def getSearchStatus(sid):
@@ -72,7 +73,7 @@ def getSearchResults(sid):
 	
 	
 # Lists the names of saved searches. Returns results in JSON form
-# Optional searchString to filter results
+# Optional searchString to filter results. searchString is NOT case sensitive
 def listSavedSearches(*searchString):
 	response, content = myhttp.request(
 		baseurl + "/services/saved/searches?output_mode=json&count=0", 
@@ -135,40 +136,12 @@ def runSearch(searchString):
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
 
-		
+	
+	
 # ---------------------------------------- DASHBOARD METHODS ----------------------------------------			
 # dashboard name is not always the same as the dashboard display name. Run listDashboardNames to get the correct name.
 # namespace is the app where the dashboard is located.
 
-# Gets a PDF rendering of a dashboard. Optional userInput for modifying dashboard tokens	
-def getDashboardPDF(dashboard, namespace, *userInput):
-	print("Working on getting dashboard PDF. This may take a while.")
-	
-	# This is the url to be used when there is no user input.
-	# NOTE: If a dashboard panel relies on a token, that panel will not render with this url. Requires user input
-	url = baseurl + ("/services/pdfgen/render?input-dashboard=%s&namespace=%s&paper-size=a4-landscape" % (dashboard, namespace))
-	
-	# If there is user input, get the dashboard xml, modify it with the user input, and send to the pdfgen/render endpoint
-	if userInput:
-		XMLDashboard = formatXMLDashboardInput(dashboard, namespace, userInput)
-		url = baseurl + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)	
-	
-	response, content = myhttp.request(
-		url,
-		'POST',
-		headers={'Authorization':('Splunk %s' % sessionKey)})
-	
-	# save the PDF locally with naming convention of: namespace_dashboard.pdf
-	if response.status == 200:
-		pdfFileName = ('pdf_files/%s_%s.pdf' % (namespace, dashboard))
-		pdfFile = open(pdfFileName,'wb')
-		pdfFile.write(content)
-		pdfFile.close()
-		return pdfFileName
-	else:
-		raise Exception("Could not find dashboard with name '%s'" % dashboard)
-	
-	
 # Lists the names of dashboards in the specified app. Returns results in JSON form	
 def listDashboardNames(appName):
 	response, content = myhttp.request(
@@ -191,14 +164,6 @@ def listDashboardNames(appName):
 		raise Exception(errorMessage)
 
 		
-# Deletes the dashboard PDF file saved in the local directory		
-# Pass the output of getDashboardPDF as filePath
-def deleteDashboardPDFFile(filePath):
-	os.remove(filePath)
-	print("Deleted " + filePath)
-	return
-	
-	
 # Gets the specified dashboard XML
 def getDashboardXML(dashboard, namespace):
 	response, content = myhttp.request(
@@ -245,8 +210,10 @@ def listOptionalDashboardInputs(dashboard, namespace):
 			'defaults': {}
 		}
 		default = input.find('{http://www.w3.org/2005/Atom}default')
-		for value in default:
-			inputObject["defaults"][("%s" % (value.tag).split('}')[1])] = value.text
+		
+		if default: # some tokens may not have a default field
+			for value in default:
+				inputObject["defaults"][("%s" % (value.tag).split('}')[1])] = value.text
 		
 		inputObject["type"] = input.attrib["type"]
 		inputObject["token"] = input.attrib["token"]
@@ -291,41 +258,48 @@ def formatXMLDashboardInput(dashboard, namespace, userInput):
 	return form
 
 	
-# Lists the app names for all apps in the current Splunk instance
-# Optional searchString to filter results	
-def listAppNames(*searchString):	
-	response, content = myhttp.request(
-		baseurl + "/services/apps/local?output_mode=json", 
-		'GET', 
-		headers={'Authorization':('Splunk %s' % sessionKey)})
 
-	decodedContent = json.loads(content.decode('utf-8'))
+
+# ---------------------------------------- PDF RENDERING METHODS ----------------------------------------
 	
+# Gets a PDF rendering of a dashboard. Optional userInput for modifying dashboard tokens
+# Example userInput: [{"token":"TIME","values":{"earliest":"0","latest":""}}]	
+def getDashboardPDF(dashboard, namespace, *userInput):
+	print("Working on getting dashboard PDF. This may take a while.")
+	
+	# This is the url to be used when there is no user input.
+	# NOTE: If a dashboard panel relies on a token, that panel will not render with this url. Requires user input
+	url = baseurl + ("/services/pdfgen/render?input-dashboard=%s&namespace=%s&paper-size=a4-landscape" % (dashboard, namespace))
+	
+	# If there is user input, get the dashboard xml, modify it with the user input, and send to the pdfgen/render endpoint
+	if userInput:
+		XMLDashboard = formatXMLDashboardInput(dashboard, namespace, userInput)
+		url = baseurl + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)	
+	
+	response, content = myhttp.request(
+		url,
+		'POST',
+		headers={'Authorization':('Splunk %s' % sessionKey)})
+	
+	# save the PDF locally with naming convention of: namespace_dashboard.pdf
 	if response.status == 200:
-		listOfApps = []
-		
-		if searchString:
-			for entry in decodedContent["entry"]:
-				if ("%s" % searchString).lower() in entry["name"].lower():
-					listOfApps.append(entry["name"])
-		else:
-			for entry in decodedContent["entry"]:
-				listOfApps.append(entry["name"])
-				
-		return listOfApps
+		pdfFileName = ('pdf_files/%s_%s.pdf' % (namespace, dashboard))
+		pdfFile = open(pdfFileName,'wb')
+		pdfFile.write(content)
+		pdfFile.close()
+		return pdfFileName
 	else:
-		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
-		raise Exception(errorMessage)
+		raise Exception("Could not find dashboard with name '%s'" % dashboard)
+
 	
-	
-# Gets a PDF rendering of a report
+# Gets a PDF rendering of a report/saved search
 # Uses the original time range of the report
-def getReportPDF(report, namespace):
+def getReportPDF(report):
 	print("Working on getting report PDF. This may take a while.")
-	pdfFileName = ('pdf_files/%s_%s.pdf' % (namespace, report))
+	pdfFileName = ('pdf_files/%s.pdf' % report)
 	report = report.replace(' ','%20')
 
-	url = baseurl + ("/services/pdfgen/render?input-report=%s&namespace=%s&paper-size=a4-landscape" % (report, namespace))
+	url = baseurl + ("/services/pdfgen/render?input-report=%s&paper-size=a4-landscape" % report)
 
 	response, content = myhttp.request(
 		url,
@@ -365,4 +339,42 @@ def getSearchPDF(searchString):
 		return pdfFileName
 	else:
 		raise Exception("%s" % content.decode('utf-8'))
+		
 
+# Deletes the dashboard PDF file saved in the local directory		
+# Pass the output of one of the PDF rendering methods as filePath
+def deletePDFFile(filePath):
+	os.remove(filePath)
+	print("Deleted " + filePath)
+	return
+
+	
+
+# ---------------------------------------- OTHER METHODS ----------------------------------------	
+	
+# Lists the app names for all apps in the current Splunk instance
+# Optional searchString to filter results. searchString is NOT case sensitive	
+def listAppNames(*searchString):	
+	response, content = myhttp.request(
+		baseurl + "/services/apps/local?output_mode=json", 
+		'GET', 
+		headers={'Authorization':('Splunk %s' % sessionKey)})
+
+	decodedContent = json.loads(content.decode('utf-8'))
+	
+	if response.status == 200:
+		listOfApps = []
+		
+		if searchString:
+			for entry in decodedContent["entry"]:
+				if ("%s" % searchString).lower() in entry["name"].lower():
+					listOfApps.append(entry["name"])
+		else:
+			for entry in decodedContent["entry"]:
+				listOfApps.append(entry["name"])
+				
+		return listOfApps
+	else:
+		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
+		raise Exception(errorMessage)
+	
