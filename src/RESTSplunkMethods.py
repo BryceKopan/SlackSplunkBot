@@ -3,27 +3,27 @@ from time import sleep
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
-baseurl = None
-user = None
+BASE_URL = None
+USER = None
+SESSION_KEY = None
+SEARCH_TTL = 10
 myhttp = httplib2.Http(disable_ssl_certificate_validation=True)
-sessionKey = None
-searchTTL = 10
 
 # Creates a connection with a Splunk enterprise instance and sets a global session key to be used in subsequent requests
 def connect(urlPrefix, username, password):
-	global baseurl, user
-	user = username
-	baseurl = urlPrefix
+	global BASE_URL, USER
+	BASE_URL = urlPrefix
+	USER = username
 	
 	response, content = myhttp.request(
-		baseurl + '/services/auth/login',
+		BASE_URL + '/services/auth/login',
 		'POST',
 		headers={},
 		body=urllib.parse.urlencode({'username':username, 'password':password, 'autoLogin':True}))
 	
 	if response.status == 200:
-		global sessionKey
-		sessionKey = minidom.parseString(content).getElementsByTagName('sessionKey')[0].childNodes[0].nodeValue
+		global SESSION_KEY
+		SESSION_KEY = minidom.parseString(content).getElementsByTagName('sessionKey')[0].childNodes[0].nodeValue
 		return
 	else:
 		raise Exception("Service returned %s while trying to connect" % response.status)
@@ -31,16 +31,16 @@ def connect(urlPrefix, username, password):
 
 		
 # ---------------------------------------- SEARCH METHODS ----------------------------------------	
-# Repeatedly retrieves the status of a search until the search completes or it times out (search timeout controlled by the 'searchTTL' variable set above) 
+# Repeatedly retrieves the status of a search until the search completes or it times out (search timeout controlled by the 'SEARCH_TTL' variable set above) 
 def getSearchStatus(sid):
 	isNotDone = True
 	elapsedTime = 0
 	
-	while isNotDone and elapsedTime < searchTTL:
+	while isNotDone and elapsedTime < SEARCH_TTL:
 		content = myhttp.request(
-			(baseurl + "/services/search/jobs/%s?output_mode=json" % sid), 
+			(BASE_URL + "/services/search/jobs/%s?output_mode=json" % sid), 
 			'GET', 
-			headers={'Authorization':('Splunk %s' % sessionKey)})[1]
+			headers={'Authorization':('Splunk %s' % SESSION_KEY)})[1]
 		
 		searchStatus = json.loads(content.decode('utf-8'))
 		
@@ -50,7 +50,7 @@ def getSearchStatus(sid):
 		else:
 			isNotDone = False
 	
-	if elapsedTime >= searchTTL:
+	if elapsedTime >= SEARCH_TTL:
 		raise Exception("Search took too long. Try narrowing your time range")
 	else:
 		return
@@ -61,9 +61,9 @@ def getSearchResults(sid):
 	getSearchStatus(sid)
 	
 	response, content = myhttp.request(
-		(baseurl + "/services/search/jobs/%s/results?output_mode=json&count=0" % sid), 
+		(BASE_URL + "/services/search/jobs/%s/results?output_mode=json&count=0" % sid), 
 		'GET', 
-		headers={'Authorization':('Splunk %s' % sessionKey)})
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 	
 	if response.status == 200:
 		return json.loads(content.decode('utf-8'))["results"]
@@ -76,9 +76,9 @@ def getSearchResults(sid):
 # Optional searchString to filter results. searchString is NOT case sensitive
 def listSavedSearches(*searchString):
 	response, content = myhttp.request(
-		baseurl + "/services/saved/searches?output_mode=json&count=0", 
+		BASE_URL + "/services/saved/searches?output_mode=json&count=0", 
 		'GET', 
-		headers={'Authorization':('Splunk %s' % sessionKey)})
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 
 	decodedContent = json.loads(content.decode('utf-8'))
 	
@@ -106,9 +106,9 @@ def runSavedSearch(savedSearchName):
 	savedSearchName = savedSearchName.replace(' ', '%20')
 
 	response, content = myhttp.request(
-		(baseurl + "/services/saved/searches/%s/dispatch?output_mode=json" % savedSearchName), 
+		(BASE_URL + "/services/saved/searches/%s/dispatch?output_mode=json" % savedSearchName), 
 		'POST', 
-		headers={'Authorization':('Splunk %s' % sessionKey)})
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 	
 	if response.status == 201:
 		sid = json.loads(content.decode('utf-8'))["sid"]
@@ -124,9 +124,9 @@ def runSearch(searchString):
 		searchString = 'search ' + searchString
 
 	response, content = myhttp.request(
-		(baseurl + '/services/search/jobs?output_mode=json&auto_cancel=%s' % searchTTL),
+		(BASE_URL + '/services/search/jobs?output_mode=json&auto_cancel=%s' % SEARCH_TTL),
 		'POST',
-		headers={'Authorization': 'Splunk %s' % sessionKey},
+		headers={'Authorization': 'Splunk %s' % SESSION_KEY},
 		body=urllib.parse.urlencode({'search': searchString}))
 	
 	if response.status == 201:
@@ -145,9 +145,9 @@ def runSearch(searchString):
 # Lists the names of dashboards in the specified app. Returns results in JSON form	
 def listDashboardNames(appName):
 	response, content = myhttp.request(
-		(baseurl + "/servicesNS/%s/%s/data/ui/views?output_mode=json" % (user, appName)), 
+		(BASE_URL + "/servicesNS/%s/%s/data/ui/views?output_mode=json" % (USER, appName)), 
 		'GET', 
-		headers={'Authorization':('Splunk %s' % sessionKey)})
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 	
 	decodedContent = json.loads(content.decode('utf-8'))
 	
@@ -167,9 +167,9 @@ def listDashboardNames(appName):
 # Gets the specified dashboard XML
 def getDashboardXML(dashboard, namespace):
 	response, content = myhttp.request(
-		baseurl + ("/servicesNS/%s/%s/data/ui/views/%s" % (user, namespace, dashboard)), 
+		BASE_URL + ("/servicesNS/%s/%s/data/ui/views/%s" % (USER, namespace, dashboard)), 
 		'GET',
-		headers={'Authorization':('Splunk %s' % sessionKey)})
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 	
 	decodedContent = content.decode('utf-8')
 	
@@ -269,17 +269,17 @@ def getDashboardPDF(dashboard, namespace, *userInput):
 	
 	# This is the url to be used when there is no user input.
 	# NOTE: If a dashboard panel relies on a token, that panel will not render with this url. Requires user input
-	url = baseurl + ("/services/pdfgen/render?input-dashboard=%s&namespace=%s&paper-size=a4-landscape" % (dashboard, namespace))
+	url = BASE_URL + ("/services/pdfgen/render?input-dashboard=%s&namespace=%s&paper-size=a4-landscape" % (dashboard, namespace))
 	
 	# If there is user input, get the dashboard xml, modify it with the user input, and send to the pdfgen/render endpoint
 	if userInput:
 		XMLDashboard = formatXMLDashboardInput(dashboard, namespace, userInput)
-		url = baseurl + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)	
+		url = BASE_URL + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)	
 	
 	response, content = myhttp.request(
 		url,
 		'POST',
-		headers={'Authorization':('Splunk %s' % sessionKey)})
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 	
 	# save the PDF locally with naming convention of: namespace_dashboard.pdf
 	if response.status == 200:
@@ -299,12 +299,12 @@ def getReportPDF(report):
 	pdfFileName = ('pdf_files/%s.pdf' % report)
 	report = report.replace(' ','%20')
 
-	url = baseurl + ("/services/pdfgen/render?input-report=%s&paper-size=a4-landscape" % report)
+	url = BASE_URL + ("/services/pdfgen/render?input-report=%s&paper-size=a4-landscape" % report)
 
 	response, content = myhttp.request(
 		url,
 		'POST',
-		headers={'Authorization':('Splunk %s' % sessionKey)})
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 
 	if response.status == 200:
 		pdfFile = open(pdfFileName,'wb')
@@ -324,12 +324,12 @@ def getSearchPDF(searchString):
 	print("Working on getting search PDF. This may take a while.")
 	searchString = searchString.replace(' ','%20')
 
-	url = baseurl + ("/services/pdfgen/render?input-search=%s&paper-size=a4-landscape" % (searchString))
+	url = BASE_URL + ("/services/pdfgen/render?input-search=%s&paper-size=a4-landscape" % (searchString))
 
 	response, content = myhttp.request(
 		url,
 		'POST',
-		headers={'Authorization':('Splunk %s' % sessionKey)})
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 
 	if response.status == 200:
 		pdfFileName = 'pdf_files/search.pdf'
@@ -356,9 +356,9 @@ def deletePDFFile(filePath):
 # Optional searchString to filter results. searchString is NOT case sensitive	
 def listAppNames(*searchString):	
 	response, content = myhttp.request(
-		baseurl + "/services/apps/local?output_mode=json", 
+		BASE_URL + "/services/apps/local?output_mode=json", 
 		'GET', 
-		headers={'Authorization':('Splunk %s' % sessionKey)})
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 
 	decodedContent = json.loads(content.decode('utf-8'))
 	
