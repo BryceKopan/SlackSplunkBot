@@ -6,6 +6,9 @@ import Command
 import Util
 
 SLACK_BOT_TOKEN = os.environ.get('SLACK_BOT_TOKEN')
+BASE_URL = "https://splunk-itest.ercot.com:8089"
+USERNAME = os.environ.get('SPLUNK_USERNAME')
+PASSWORD = os.environ.get('SPLUNK_PASSWORD')
 
 # constants
 RTM_READ_DELAY = 1 # 1 second delay between reading from RTM
@@ -15,7 +18,7 @@ if __name__ == "__main__":
 	botID = Slack.getBotID()
 	print("\nSlackSplunkBot connected to Slack")
 	
-	Splunk.connect()
+	Splunk.connect(BASE_URL, USERNAME, PASSWORD)
 	print("\nSlackSplunkBot connected to Splunk")
 	
 	results = Splunk.runSearch("index=_audit action= * user=* earliest=-60m latest=now() | stats count by user")
