@@ -11,19 +11,6 @@ SLACK_BOT_TOKEN = os.environ.get('SLACK_BOT_TOKEN')
 RTM_READ_DELAY = 1 # 1 second delay between reading from RTM
 
 if __name__ == "__main__":
-	try:
-		print('Checking connection to Slack...')
-		test = requests.get('https://api.slack.com')
-		print('Connection to Slack OK.')
-	except requests.exceptions.SSLError as err:
-		print('SSL Error. Adding custom certs to Certifi store...')
-		cafile = certifi.where()
-		with open('res\ErcotCertificates.pem', 'rb') as infile:
-			customca = infile.read()
-		with open(cafile, 'ab') as outfile:
-			outfile.write(customca)
-		print('Certificates Added.')
-
 	Slack.connect(SLACK_BOT_TOKEN)
 	botID = Slack.getBotID()
 	print("\nSlackSplunkBot connected to Slack")
