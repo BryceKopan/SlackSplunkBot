@@ -3,15 +3,18 @@ from time import sleep
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
-baseurl = 'https://splunk-itest.ercot.com:8089'
-username = os.environ.get('SPLUNK_USERNAME')
-password = os.environ.get('SPLUNK_PASSWORD')
+baseurl = None
+user = None
 myhttp = httplib2.Http(disable_ssl_certificate_validation=True)
 sessionKey = None
 searchTTL = 10
 
 # Creates a connection with a Splunk enterprise instance and sets a global session key to be used in subsequent requests
-def connect():
+def connect(urlPrefix, username, password):
+	global baseurl, user
+	user = username
+	baseurl = urlPrefix
+	
 	response, content = myhttp.request(
 		baseurl + '/services/auth/login',
 		'POST',
@@ -169,7 +172,7 @@ def getDashboardPDF(dashboard, namespace, *userInput):
 # Lists the names of dashboards in the specified app. Returns results in JSON form	
 def listDashboardNames(appName):
 	response, content = myhttp.request(
-		(baseurl + "/servicesNS/%s/%s/data/ui/views?output_mode=json" % (username, appName)), 
+		(baseurl + "/servicesNS/%s/%s/data/ui/views?output_mode=json" % (user, appName)), 
 		'GET', 
 		headers={'Authorization':('Splunk %s' % sessionKey)})
 	
@@ -199,7 +202,7 @@ def deleteDashboardPDFFile(filePath):
 # Gets the specified dashboard XML
 def getDashboardXML(dashboard, namespace):
 	response, content = myhttp.request(
-		baseurl + ("/servicesNS/%s/%s/data/ui/views/%s" % (username, namespace, dashboard)), 
+		baseurl + ("/servicesNS/%s/%s/data/ui/views/%s" % (user, namespace, dashboard)), 
 		'GET',
 		headers={'Authorization':('Splunk %s' % sessionKey)})
 	
@@ -281,10 +284,9 @@ def formatXMLDashboardInput(dashboard, namespace, userInput):
 	form = form.replace(' ', '%20')
 	form = form.replace('<', '%26lt%3B')
  
-	# UNDER CONSTRUCTION. Currently only supports a TIME token
 	for input in userInput[0]:
-		form = form.replace("$TIME.earliest$", input["earliest"])
-		form = form.replace("$TIME.latest$", input["latest"])
+		for item in input["values"]:
+			form = form.replace(("$%s.%s$" % (input["token"], item)), input["values"][item])
 	
 	return form
 
@@ -341,7 +343,9 @@ def getReportPDF(report, namespace):
 		else:
 			raise Exception("An error occurred while generating PDF for report '%s'" % content.decode('utf-8'))
 
-			
+
+# Gets a PDF rendering of an ad hoc search
+# NOTE: can only return the default visualization			
 def getSearchPDF(searchString):
 	print("Working on getting search PDF. This may take a while.")
 	searchString = searchString.replace(' ','%20')
@@ -360,8 +364,5 @@ def getSearchPDF(searchString):
 		pdfFile.close()
 		return pdfFileName
 	else:
-		if '404' in content.decode('utf-8'):
-			raise Exception("Could not find report with name '%s'" % report.replace('%20',' '))
-		else:
-			raise Exception("An error occurred while generating PDF for report '%s'" % content.decode('utf-8'))
+		raise Exception("%s" % content.decode('utf-8'))
 
