@@ -127,10 +127,17 @@ def runSearch(searchString):
 		
 # dashboard name is not always the same as the dashboard display name. Run listDashboardNames to get the correct name.
 # namespace is the app where the dashboard is located.	
-def getDashboardPDF(dashboard, namespace):
+def getDashboardPDF(dashboard, namespace, *userInput):
 	print("Working on getting dashboard PDF. This may take a while.")
+	
+	url = baseurl + ("/services/pdfgen/render?input-dashboard=%s&namespace=%s&paper-size=a4-landscape" % (dashboard, namespace))
+	
+	if userInput:
+		XMLDashboard = formatXMLDashboardInput(dashboard, namespace, userInput)
+		url = baseurl + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)	
+	
 	response, content = myhttp.request(
-		baseurl + ("/services/pdfgen/render?input-dashboard=%s&namespace=%s&paper-size=a4-landscape" % (dashboard, namespace)),
+		url,
 		'POST',
 		headers={'Authorization':('Splunk %s' % sessionKey)})
 	
@@ -238,6 +245,38 @@ def listAppNames(*searchString):
 		raise Exception(errorMessage)
 		
 
+def formatXMLDashboardInput(dashboard, namespace, userInput):
+	print('[INFO] Formatting XML Dashboard Input')
+	XMLDashboard = getDashboardXML(dashboard, namespace)
+	XMLDashboard=XMLDashboard.replace('![CDATA[<', '')
+	XMLDashboard=XMLDashboard.replace(']]>', '')
+
+	tree = ET.fromstring(XMLDashboard)
+	entry = tree.find('{http://www.w3.org/2005/Atom}entry')
+	content = entry.find('{http://www.w3.org/2005/Atom}content')
+	dict = content.find('{http://dev.splunk.com/ns/rest}dict')
+
+	global data
+	for elem in dict:
+		if elem.attrib["name"] == "eai:data":
+			data = elem
+			break
+
+	form = data.find('{http://www.w3.org/2005/Atom}form')
+	form = ET.tostring(form).decode('utf-8')
+
+	# replace characters in the form so the api will understand it
+	form = form.replace('ns0:', '')
+	form = form.replace('ns1:', '')
+	form = form.replace('\n', '')
+	form = form.replace(' ', '%20')
+	form = form.replace('<', '%26lt%3B')
+ 
+	# UNDER CONSTRUCTION. Currently only supports a TIME token
+	for input in userInput[0]:
+		form = form.replace("$TIME.earliest$", input["earliest"])
+		form = form.replace("$TIME.latest$", input["latest"])
 	
+	return form
 	
 
