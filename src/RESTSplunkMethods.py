@@ -31,6 +31,7 @@ def connect(urlPrefix, username, password):
 
 		
 # ---------------------------------------- SEARCH METHODS ----------------------------------------	
+
 # Repeatedly retrieves the status of a search until the search completes or it times out (search timeout controlled by the 'SEARCH_TTL' variable set above) 
 def getSearchStatus(sid):
 	isNotDone = True
@@ -138,14 +139,14 @@ def runSearch(searchString):
 
 	
 	
-# ---------------------------------------- DASHBOARD METHODS ----------------------------------------			
+# ---------------------------------------- DASHBOARD METHODS ----------------------------------------
 # dashboard name is not always the same as the dashboard display name. Run listDashboardNames to get the correct name.
 # namespace is the app where the dashboard is located.
 
 # Lists the names of dashboards in the specified app. Returns results in JSON form	
-def listDashboardNames(appName):
+def listDashboardNames(namespace):
 	response, content = myhttp.request(
-		(BASE_URL + "/servicesNS/%s/%s/data/ui/views?output_mode=json" % (USER, appName)), 
+		(BASE_URL + "/servicesNS/%s/%s/data/ui/views?output_mode=json" % (USER, namespace)), 
 		'GET', 
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 	
@@ -207,13 +208,13 @@ def listOptionalDashboardInputs(dashboard, namespace):
 		inputObject = {
 			'type': '',
 			'token': '',
-			'defaults': {}
+			'values': {}
 		}
 		default = input.find('{http://www.w3.org/2005/Atom}default')
 		
 		if default: # some tokens may not have a default field
 			for value in default:
-				inputObject["defaults"][("%s" % (value.tag).split('}')[1])] = value.text
+				inputObject["values"][("%s" % (value.tag).split('}')[1])] = value.text
 		
 		inputObject["type"] = input.attrib["type"]
 		inputObject["token"] = input.attrib["token"]
@@ -251,12 +252,11 @@ def formatXMLDashboardInput(dashboard, namespace, userInput):
 	form = form.replace(' ', '%20')
 	form = form.replace('<', '%26lt%3B')
  
-	for input in userInput[0]:
+	for input in userInput:
 		for item in input["values"]:
 			form = form.replace(("$%s.%s$" % (input["token"], item)), input["values"][item])
 	
 	return form
-
 	
 
 
@@ -271,10 +271,17 @@ def getDashboardPDF(dashboard, namespace, *userInput):
 	# NOTE: If a dashboard panel relies on a token, that panel will not render with this url. Requires user input
 	url = BASE_URL + ("/services/pdfgen/render?input-dashboard=%s&namespace=%s&paper-size=a4-landscape" % (dashboard, namespace))
 	
-	# If there is user input, get the dashboard xml, modify it with the user input, and send to the pdfgen/render endpoint
+	# If there is user input or there are tokens associated with the dashboard, get the dashboard xml, modify it with the user input, and send to the pdfgen/render endpoint
 	if userInput:
-		XMLDashboard = formatXMLDashboardInput(dashboard, namespace, userInput)
-		url = BASE_URL + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)	
+		XMLDashboard = formatXMLDashboardInput(dashboard, namespace, userInput[0])
+		url = BASE_URL + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)
+	else:
+		optionalDashboardInputs = listOptionalDashboardInputs(dashboard, namespace)
+		
+		if len(optionalDashboardInputs) > 0:
+			XMLDashboard = formatXMLDashboardInput(dashboard, namespace, optionalDashboardInputs)
+			url = BASE_URL + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)
+			
 	
 	response, content = myhttp.request(
 		url,
@@ -374,6 +381,44 @@ def listAppNames(*searchString):
 				listOfApps.append(entry["name"])
 				
 		return listOfApps
+	else:
+		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
+		raise Exception(errorMessage)
+	
+
+def disableAlert(savedSearchName):
+	# reformat saved search name for URL
+	savedSearchName = savedSearchName.replace(' ', '%20')
+	
+	response, content = myhttp.request(
+		BASE_URL + ("/services/saved/searches/%s?output_mode=json" % savedSearchName), 
+		'POST', 
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)},
+		body=urllib.parse.urlencode({'disabled':True}))
+
+	decodedContent = json.loads(content.decode('utf-8'))
+	
+	if response.status == 200:
+		return("Successfully disabled %s" % savedSearchName.replace('%20',' '))
+	else:
+		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
+		raise Exception(errorMessage)
+		
+		
+def enableAlert(savedSearchName):
+	# reformat saved search name for URL
+	savedSearchName = savedSearchName.replace(' ', '%20')
+	
+	response, content = myhttp.request(
+		BASE_URL + ("/services/saved/searches/%s?output_mode=json" % savedSearchName), 
+		'POST', 
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)},
+		body=urllib.parse.urlencode({'disabled':False}))
+
+	decodedContent = json.loads(content.decode('utf-8'))
+	
+	if response.status == 200:
+		return("Successfully enabled %s" % savedSearchName.replace('%20',' '))
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
