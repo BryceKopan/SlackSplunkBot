@@ -145,7 +145,7 @@ def runSearch(searchString):
 # namespace is the app where the dashboard is located.
 
 # Lists the names of dashboards in the specified app. Returns results in JSON form	
-def listDashboardNames(namespace):
+def listDashboardNames(namespace, *searchString):
 	response, content = myhttp.request(
 		(BASE_URL + "/servicesNS/%s/%s/data/ui/views?output_mode=json" % (USER, namespace)), 
 		'GET', 
@@ -156,9 +156,14 @@ def listDashboardNames(namespace):
 	if response.status == 200:
 		listOfDashboards = []
 		
-		for entry in decodedContent["entry"]:
-			if entry["content"]["isDashboard"]: # check to make sure this is a dashboard entry
-				listOfDashboards.append(entry["name"])
+		if searchString:
+			for entry in decodedContent["entry"]:
+				if entry["content"]["isDashboard"] and ("%s" % searchString).lower() in entry["name"].lower():
+					listOfDashboards.append(entry["name"])
+		else:
+			for entry in decodedContent["entry"]:
+				if entry["content"]["isDashboard"]:
+					listOfDashboards.append(entry["name"])
 		
 		return listOfDashboards
 	else:
@@ -408,7 +413,6 @@ def enableAlert(savedSearchName):
 
 def autoEnableAlert(savedSearchName, disableDuration):
 	sleep(disableDuration * 60) # transform to minutes
-	# Could have this call the SlackAPI method "postMessage"
 	print("[AUTO ENABLE ALERT] " + enableAlert(savedSearchName))
 	
 	
