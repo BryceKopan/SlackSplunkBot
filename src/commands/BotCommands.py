@@ -10,6 +10,11 @@ def shutdown(commandParameters, channel):
 	Slack.postMessage("Shutting Down", channel)
 	sys.exit("Shutdown command used")
 	
+#Testing Commands
+	
+def parameter_test(commandParameters, channel):
+	return
+	
 def raise_error(commandParameters, channel):
 	raise Exception("Test Error")
 	
