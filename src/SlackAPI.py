@@ -17,7 +17,10 @@ def getBotID():
 def getSlackEvents():
 	return slackClient.rtm_read()
 	
-def postMessage(message, channel):
+def postMessage(message, channel, formatting = True):
+	if not formatting:
+		message = "```" + message + "```"
+	
 	with warnings.catch_warnings():
 		warnings.simplefilter("ignore")
 		try:
