@@ -1,4 +1,4 @@
-import os, urllib, httplib2, json 
+import os, urllib, httplib2, json, threading 
 from time import sleep
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
@@ -102,12 +102,13 @@ def listSavedSearches(*searchString):
 	
 # Runs a saved search. Returns results in JSON form
 # Run 'listSavedSearches' to get the correct name
-def runSavedSearch(savedSearchName):
+# Optional triggerActions parameter
+def runSavedSearch(savedSearchName, triggerActions=False):
 	# reformat saved search name for URL
 	savedSearchName = savedSearchName.replace(' ', '%20')
 
 	response, content = myhttp.request(
-		(BASE_URL + "/services/saved/searches/%s/dispatch?output_mode=json" % savedSearchName), 
+		(BASE_URL + "/services/saved/searches/%s/dispatch?output_mode=json&trigger_actions=%s" % (savedSearchName, triggerActions)), 
 		'POST', 
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 	
@@ -183,7 +184,7 @@ def getDashboardXML(dashboard, namespace):
 	
 	
 # Lists the dashboard tokens available to the specified dashboard. Returns results in JSON form
-def listOptionalDashboardInputs(dashboard, namespace):
+def listDashboardInputs(dashboard, namespace):
 	XMLDashboard = getDashboardXML(dashboard, namespace)
 	XMLDashboard=XMLDashboard.replace('![CDATA[<', '') # remove this xml tag so the xml can be parsed below
 	XMLDashboard=XMLDashboard.replace(']]>', '')
@@ -225,7 +226,7 @@ def listOptionalDashboardInputs(dashboard, namespace):
 
 	
 # Modifies the dashboard XML with the user input and returns the modified XML	
-def formatXMLDashboardInput(dashboard, namespace, userInput):
+def formatDashboardInput(dashboard, namespace, userInput):
 	print('[INFO] Formatting XML Dashboard Input')
 	XMLDashboard = getDashboardXML(dashboard, namespace)
 	XMLDashboard=XMLDashboard.replace('![CDATA[<', '') # remove this xml tag so the xml can be parsed below
@@ -267,19 +268,19 @@ def formatXMLDashboardInput(dashboard, namespace, userInput):
 def getDashboardPDF(dashboard, namespace, *userInput):
 	print("Working on getting dashboard PDF. This may take a while.")
 	
-	# This is the url to be used when there is no user input.
-	# NOTE: If a dashboard panel relies on a token, that panel will not render with this url. Requires user input
+	# This is the url to be used when there is no user input and no tokens associated with the dashboard
 	url = BASE_URL + ("/services/pdfgen/render?input-dashboard=%s&namespace=%s&paper-size=a4-landscape" % (dashboard, namespace))
 	
-	# If there is user input or there are tokens associated with the dashboard, get the dashboard xml, modify it with the user input, and send to the pdfgen/render endpoint
+	# If there is user input, get the dashboard xml, modify it with the user input, and send to the pdfgen/render endpoint
 	if userInput:
-		XMLDashboard = formatXMLDashboardInput(dashboard, namespace, userInput[0])
+		XMLDashboard = formatDashboardInput(dashboard, namespace, userInput[0])
 		url = BASE_URL + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)
 	else:
-		optionalDashboardInputs = listOptionalDashboardInputs(dashboard, namespace)
+		# If there are tokens associated with the dashboard, get the dashboard xml, modify it with the default token values, and send to the pdfgen/render endpoint
+		optionalDashboardInputs = listDashboardInputs(dashboard, namespace)
 		
 		if len(optionalDashboardInputs) > 0:
-			XMLDashboard = formatXMLDashboardInput(dashboard, namespace, optionalDashboardInputs)
+			XMLDashboard = formatDashboardInput(dashboard, namespace, optionalDashboardInputs)
 			url = BASE_URL + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)
 			
 	
@@ -312,7 +313,7 @@ def getReportPDF(report):
 		url,
 		'POST',
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
-
+		
 	if response.status == 200:
 		pdfFile = open(pdfFileName,'wb')
 		pdfFile.write(content)
@@ -355,8 +356,111 @@ def deletePDFFile(filePath):
 	print("Deleted " + filePath)
 	return
 
+
+	
+# ---------------------------------------- ALERT METHODS ----------------------------------------
+
+# Optional disableDuration(in minutes). autoEnableAlert will enable the alert after the disableDuration
+# If disableDuration is not set, the alert must be enabled manually	
+def disableAlert(savedSearchName, disableDuration=0):
+	# reformat saved search name for URL
+	savedSearchName = savedSearchName.replace(' ', '%20')
+	
+	response, content = myhttp.request(
+		BASE_URL + ("/services/saved/searches/%s?output_mode=json" % savedSearchName), 
+		'POST', 
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)},
+		body=urllib.parse.urlencode({'disabled':True}))
+
+	decodedContent = json.loads(content.decode('utf-8'))
+	savedSearchName = savedSearchName.replace('%20', ' ')
+	
+	if response.status == 200:
+		if disableDuration:
+			thread = threading.Thread(target=autoEnableAlert, args=(savedSearchName, disableDuration))
+			thread.start()
+			return("Successfully disabled '%s'. It will automatically be enabled after %s minutes" % (savedSearchName, disableDuration))
+		else:
+			return("Successfully disabled '%s'" % savedSearchName)
+	else:
+		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
+		raise Exception(errorMessage)
+		
+		
+def enableAlert(savedSearchName):
+	# reformat saved search name for URL
+	savedSearchName = savedSearchName.replace(' ', '%20')
+	
+	response, content = myhttp.request(
+		BASE_URL + ("/services/saved/searches/%s?output_mode=json" % savedSearchName), 
+		'POST', 
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)},
+		body=urllib.parse.urlencode({'disabled':False}))
+
+	decodedContent = json.loads(content.decode('utf-8'))
+	
+	if response.status == 200:
+		return("Successfully enabled '%s'" % savedSearchName.replace('%20',' '))
+	else:
+		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
+		raise Exception(errorMessage)
 	
 
+def autoEnableAlert(savedSearchName, disableDuration):
+	sleep(disableDuration * 60) # transform to minutes
+	# Could have this call the SlackAPI method "postMessage"
+	print("[AUTO ENABLE ALERT] " + enableAlert(savedSearchName))
+	
+	
+# Lists the names of disabled alerts. Returns results in JSON form
+# Optional searchString to filter results. searchString is NOT case sensitive
+def listDisabledAlerts(*searchString):
+	response, content = myhttp.request(
+		BASE_URL + "/services/saved/searches?output_mode=json&count=0", 
+		'GET', 
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
+
+	decodedContent = json.loads(content.decode('utf-8'))
+	
+	if response.status == 200:
+		listOfDisabledAlerts = []
+		
+		if searchString:
+			for entry in decodedContent["entry"]:
+				if ("%s" % searchString).lower() in entry["name"].lower() and entry["content"]["actions"] and entry["content"]["disabled"]:
+					listOfDisabledAlerts.append(entry["name"])
+		else:
+			for entry in decodedContent["entry"]:
+				if entry["content"]["actions"] and entry["content"]["disabled"]:
+					listOfDisabledAlerts.append(entry["name"])
+				
+		return listOfDisabledAlerts
+	else:
+		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
+		raise Exception(errorMessage)
+	
+
+# reschedule an alert by passing in a cron schedule
+def rescheduleAlert(savedSearchName, cronSchedule):
+	# reformat saved search name for URL
+	savedSearchName = savedSearchName.replace(' ', '%20')
+	
+	response, content = myhttp.request(
+		BASE_URL + ("/services/saved/searches/%s?output_mode=json" % savedSearchName), 
+		'POST', 
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)},
+		body=urllib.parse.urlencode({'cron_schedule':cronSchedule}))
+
+	decodedContent = json.loads(content.decode('utf-8'))
+	
+	if response.status == 200:
+		return("Successfully rescheduled '%s' with cron schedule: '%s'" % (savedSearchName.replace('%20',' '), cronSchedule))
+	else:
+		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
+		raise Exception(errorMessage)
+	
+	
+	
 # ---------------------------------------- OTHER METHODS ----------------------------------------	
 	
 # Lists the app names for all apps in the current Splunk instance
@@ -385,41 +489,8 @@ def listAppNames(*searchString):
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
 	
-
-def disableAlert(savedSearchName):
-	# reformat saved search name for URL
-	savedSearchName = savedSearchName.replace(' ', '%20')
 	
-	response, content = myhttp.request(
-		BASE_URL + ("/services/saved/searches/%s?output_mode=json" % savedSearchName), 
-		'POST', 
-		headers={'Authorization':('Splunk %s' % SESSION_KEY)},
-		body=urllib.parse.urlencode({'disabled':True}))
-
-	decodedContent = json.loads(content.decode('utf-8'))
 	
-	if response.status == 200:
-		return("Successfully disabled %s" % savedSearchName.replace('%20',' '))
-	else:
-		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
-		raise Exception(errorMessage)
-		
-		
-def enableAlert(savedSearchName):
-	# reformat saved search name for URL
-	savedSearchName = savedSearchName.replace(' ', '%20')
 	
-	response, content = myhttp.request(
-		BASE_URL + ("/services/saved/searches/%s?output_mode=json" % savedSearchName), 
-		'POST', 
-		headers={'Authorization':('Splunk %s' % SESSION_KEY)},
-		body=urllib.parse.urlencode({'disabled':False}))
-
-	decodedContent = json.loads(content.decode('utf-8'))
 	
-	if response.status == 200:
-		return("Successfully enabled %s" % savedSearchName.replace('%20',' '))
-	else:
-		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
-		raise Exception(errorMessage)
 	
