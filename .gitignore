@@ -104,4 +104,4 @@ venv.bak/
 .mypy_cache/
 
 # dashboard PDF files
-src/pdf_files
+src/pdf_files/*
