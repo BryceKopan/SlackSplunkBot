@@ -25,6 +25,8 @@ def connect(token, host):
 	response.raise_for_status()
 	results = json.loads(response.text)
 	lastProcessedMessageID = results['items'][0]['id']
+	print(results['items'][0]['message'])
+	print(results['items'][0]['id'])
 	
 def getEvents():
 	global lastProcessedMessageID
@@ -42,7 +44,7 @@ def getEvents():
 	print(headers['X-Ratelimit-Remaining'])
 	
 	lastProcessedMessageID = results['items'][len(results['items']) - 1]['id']
-	del results['items'][len(results['items']) - 1]
+	del results['items'][0]
 	return results
 	
 def postMessage(message, room):
