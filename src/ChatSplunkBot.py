@@ -24,7 +24,6 @@ if __name__ == "__main__":
 	
 	while True:
 		command, channel = Command.parseBotCommands(HipChat.getEvents(), trigger)
-		print(command)
 		if command:
 			try:
 				print(command)

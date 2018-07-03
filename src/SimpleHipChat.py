@@ -2,6 +2,8 @@ from __future__ import print_function
 import requests
 import sys
 import json
+from os import path
+from requests_toolbelt import MultipartEncoder
 
 TOKEN = None
 HOST = None
@@ -17,7 +19,7 @@ def connect(token, host):
 	Session.verify = False
 	
 	url = 'https://{0}/v2/room/{1}/history/latest'.format(HOST, ROOM)
-	headers = {'Authorization': 'Bearer ' + TOKEN}
+	headers = {'Authorization':'Bearer ' + TOKEN}
 	url += '?max-results=1'
 	response = Session.get(url, headers=headers)
 	response.raise_for_status()
@@ -28,7 +30,7 @@ def getEvents():
 	global lastProcessedMessageID
 	
 	url = 'https://{0}/v2/room/{1}/history/latest'.format(HOST, ROOM)
-	headers = {'Authorization': 'Bearer ' + TOKEN}
+	headers = {'Authorization':'Bearer ' + TOKEN}
 	url += '?not-before=' + lastProcessedMessageID
 	response = Session.get(url, headers=headers)
 	response.raise_for_status()
@@ -45,12 +47,38 @@ def getEvents():
 	
 def postMessage(message, room):
 	url = 'https://{0}/v2/room/{1}/message'.format(HOST, ROOM)
-	headers = {'Authorization': 'Bearer ' + TOKEN}
+	headers = {'Authorization':'Bearer ' + TOKEN}
 	payload = {
 		'message': message
 	}
 	response = Session.post(url, data=json.dumps(payload), headers=headers)
 	response.raise_for_status()
+	
+def postFile(filePath, room = 18):
+	url = 'https://{0}/v2/room/{1}/share/file'.format(HOST, ROOM)
+	headers = {'Content-type':'multipart/related; boundary=boundary123456'}
+	headers['Authorization'] = 'Bearer ' + TOKEN
+
+	m = MultipartRelatedEncoder(fields={'metadata' : (None, '', 'application/json; charset=UTF-8'),
+										'file'     : (path.basename(filePath), open(filePath, 'rb'), 'text/csv')})
+										
+	headers['Content-Type'] = m.content_type
+	
+	r = Session.post(url, data=m, headers=headers)
+	
+class MultipartRelatedEncoder(MultipartEncoder):
+	"""A multipart/related encoder"""
+	@property
+	def content_type(self):
+		return str('multipart/related; boundary={0}'.format(self.boundary_value))
+
+	def _iter_fields(self):
+		# change content-disposition from form-data to attachment
+		for field in super(MultipartRelatedEncoder, self)._iter_fields():
+			content_type = field.headers['Content-Type']
+			field.make_multipart(content_disposition = 'attachment',
+								 content_type        = content_type)
+			yield field
 	
 # from __future__ import print_function
 # import requests
