@@ -7,6 +7,7 @@ BASE_URL = None
 USER = None
 SESSION_KEY = None
 SEARCH_TTL = 10
+PATH = os.path.abspath(os.path.dirname(__file__))
 myhttp = httplib2.Http(disable_ssl_certificate_validation=True)
 
 def connect(urlPrefix, username, password):
@@ -18,7 +19,7 @@ def connect(urlPrefix, username, password):
 			username (required) = Splunk username
 			password (required) = Splunk password
 	"""
-
+	print("[CONNECT]")
 	global BASE_URL, USER
 	BASE_URL = urlPrefix
 	USER = username
@@ -34,11 +35,19 @@ def connect(urlPrefix, username, password):
 	if response.status == 200:
 		global SESSION_KEY
 		SESSION_KEY = decodedContent["sessionKey"]
+		print("Successfully connected to Splunk server")
+		thread = threading.Thread(target=autoReconnect, args=(urlPrefix, username, password))
+		# thread.start()
+		
 		return
 	else:
 		errorMessage = decodedContent["messages"][0]["text"]
 		raise Exception("%s - %s" % (response.status, errorMessage))
 
+def autoReconnect(urlPrefix, username, password):
+	sleep(59 * 60) # sleep for 59 minutes
+	print("[AUTO RECONNECT] Attempting to reconnect with Splunk server")
+	return connect(urlPrefix, username, password)
 
 		
 # ---------------------------------------- SEARCH METHODS ----------------------------------------	
@@ -49,7 +58,7 @@ def getSearchStatus(sid):
 		Parameters:
 			sid (required) = search ID
 	"""
-
+	print("Getting search status")
 	isNotDone = True
 	elapsedTime = 0
 	
@@ -80,6 +89,7 @@ def getSearchResults(sid):
 			sid (required) = search ID
 	"""
 	getSearchStatus(sid)
+	print("Getting search results")
 	
 	response, content = myhttp.request(
 		(BASE_URL + "/services/search/jobs/%s/results?output_mode=json&count=0" % sid), 
@@ -87,7 +97,8 @@ def getSearchResults(sid):
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 	
 	if response.status == 200:
-		return json.loads(content.decode('utf-8'))["results"]
+		results = "%s" % json.loads(content.decode('utf-8'))["results"] 
+		return results.replace('},','},\n')
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
@@ -99,7 +110,7 @@ def listSavedSearches(*searchString):
 		Parameters:
 			searchString (optional) = filters results. searchString is NOT case sensitive
 	"""
-
+	print("[LIST SAVED SEARCHES]")
 	response, content = myhttp.request(
 		BASE_URL + "/services/saved/searches?output_mode=json&count=0", 
 		'GET', 
@@ -112,13 +123,15 @@ def listSavedSearches(*searchString):
 		
 		if searchString:
 			for entry in decodedContent["entry"]:
-				if ("%s" % searchString).lower() in entry["name"].lower():
+				if ("%s" % searchString).lower() in entry["name"].lower() and entry["content"]["is_visible"]:
 					listOfSavedSearches.append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
-				listOfSavedSearches.append(entry["name"])
-				
-		return listOfSavedSearches
+				if entry["content"]["is_visible"]:
+					listOfSavedSearches.append(entry["name"])
+		
+		listOfSavedSearches = "%s" % listOfSavedSearches	
+		return listOfSavedSearches.replace(',',',\n')
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
@@ -132,7 +145,7 @@ def runSavedSearch(savedSearchName, triggerActions=False):
 			savedSearchName (required) = the name of the saved Splunk search
 			triggerActions (optional) = specify whether to trigger alert actions (Boolean)
 	"""
-
+	print("[RUN SAVED SEARCH]: %s" % savedSearchName)
 	# reformat saved search name for URL
 	savedSearchName = savedSearchName.replace(' ', '%20')
 
@@ -155,7 +168,7 @@ def runSearch(searchString):
 		Parameters:
 			searchString (required) = the ad hoc search string in the Splunk Search Processing Language (SPL)
 	"""
- 
+	print("[RUN SEARCH]: %s" % searchString)
 	if not searchString.startswith('search'):
 		searchString = 'search ' + searchString
 
@@ -186,8 +199,9 @@ def listDashboardNames(namespace, *searchString):
 			namespace (required) = the app name
 			searchString (optional) = filters results. searchString is NOT case sensitive
 	"""
+	print("[LIST DASHBOARD NAMES]: namespace=%s" % namespace)
 	response, content = myhttp.request(
-		(BASE_URL + "/servicesNS/%s/%s/data/ui/views?output_mode=json" % (USER, namespace)), 
+		(BASE_URL + "/servicesNS/%s/%s/data/ui/views?output_mode=json&count=0" % (USER, namespace)), 
 		'GET', 
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 	
@@ -198,14 +212,15 @@ def listDashboardNames(namespace, *searchString):
 		
 		if searchString:
 			for entry in decodedContent["entry"]:
-				if entry["content"]["isDashboard"] and ("%s" % searchString).lower() in entry["name"].lower():
+				if entry["content"]["isDashboard"] and entry["content"]["isVisible"] and ("%s" % searchString).lower() in entry["name"].lower():
 					listOfDashboards.append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
-				if entry["content"]["isDashboard"]:
+				if entry["content"]["isDashboard"] and entry["content"]["isVisible"]:
 					listOfDashboards.append(entry["name"])
 		
-		return listOfDashboards
+		listOfDashboards = "%s" % listOfDashboards
+		return listOfDashboards.replace(',',',\n')
 	else:
 		errorMessage = decodedContent["messages"][0]["text"]
 		raise Exception(errorMessage)
@@ -215,10 +230,10 @@ def getDashboardXML(namespace, dashboard):
 	"""
 		Gets the specified dashboard XML.
 		Parameters:
-			dashboard (required) = the dashboard name
 			namespace (required) = the name of the app where the dashboard is located
+			dashboard (required) = the dashboard name
 	"""
-
+	print("Getting dashboard XML for namespace=%s, dashboard=%s" % (namespace, dashboard))
 	response, content = myhttp.request(
 		BASE_URL + ("/servicesNS/%s/%s/data/ui/views/%s" % (USER, namespace, dashboard)), 
 		'GET',
@@ -239,10 +254,11 @@ def listDashboardInputs(namespace, dashboard):
 	"""
 		Lists the dashboard tokens available to the specified dashboard. Returns results in JSON form.
 		Parameters:
-			dashboard (required) = the dashboard name
 			namespace (required) = the name of the app where the dashboard is located
+			dashboard (required) = the dashboard name
 	"""
-	optionalDashboardInputs = []
+	print("[LIST DASHBOARD INPUTS] namespace=%s, dashboard=%s" % (namespace, dashboard))
+	dashboardInputs = []
 	XMLDashboard = getDashboardXML(namespace, dashboard)
 	XMLDashboard=XMLDashboard.replace('![CDATA[<', '') # remove this xml tag so the xml can be parsed below
 	XMLDashboard=XMLDashboard.replace(']]>', '')
@@ -277,25 +293,25 @@ def listDashboardInputs(namespace, dashboard):
 			inputObject["type"] = input.attrib["type"]
 			inputObject["token"] = input.attrib["token"]
 			
-			optionalDashboardInputs.append(inputObject)
-			
-	return optionalDashboardInputs 
+			dashboardInputs.append(inputObject)
+	
+	dashboardInputs = "%s" % dashboardInputs
+	return dashboardInputs.replace('},','},\n') 
 
 		
 def formatDashboardInput(namespace, dashboard, userInput):
 	"""
 		Modifies the dashboard XML with the user input and returns the modified XML.
 		Parameters:
-			dashboard (required) = the dashboard name
 			namespace (required) = the name of the app where the dashboard is located
+			dashboard (required) = the dashboard name
 			userInput (required) = user input with token values. Must be in the form [{'token':'TOKEN_NAME','values':{'property1':'value1','property2':'value2'}}]
 	"""
-
-	print('[INFO] Formatting XML Dashboard Input')
+	print('Formatting XML Dashboard Input')
 	XMLDashboard = getDashboardXML(namespace, dashboard)
 	XMLDashboard=XMLDashboard.replace('![CDATA[<', '') # remove this xml tag so the xml can be parsed below
 	XMLDashboard=XMLDashboard.replace(']]>', '')
-
+	
 	tree = ET.fromstring(XMLDashboard)
 	entry = tree.find('{http://www.w3.org/2005/Atom}entry')
 	content = entry.find('{http://www.w3.org/2005/Atom}content')
@@ -317,7 +333,7 @@ def formatDashboardInput(namespace, dashboard, userInput):
 	form = form.replace(' ', '%20')
 	form = form.replace('<', '%26lt%3B')
  
-	for input in userInput:
+	for input in eval(userInput):
 		for item in input["values"]:
 			form = form.replace(("$%s.%s$" % (input["token"], item)), input["values"][item])
 	
@@ -327,15 +343,15 @@ def formatDashboardInput(namespace, dashboard, userInput):
 
 # ---------------------------------------- PDF RENDERING METHODS ----------------------------------------
 	
-def getDashboardPDF(namespace, dashboard, *userInput):
+def getDashboardPdf(namespace, dashboard, *userInput):
 	"""
 		Gets a PDF rendering of a dashboard and saves it to '/pdf_files/<namespace>_<dashboard>.pdf'
 		Parameters:
-			dashboard (required) = the dashboard name
 			namespace (required) = the name of the app where the dashboard is located
+			dashboard (required) = the dashboard name
 			userInput (optional) = user input with token values. Must be in the form [{'token':'TOKEN_NAME','values':{'property1':'value1','property2':'value2'}}]
 	"""
-	print("Working on getting dashboard PDF. This may take a while.")
+	print("[GET DASHBOARD PDF]: namespace=%s, dashboard=%s" % (namespace, dashboard))
 	
 	# This is the url to be used when there is no user input and no tokens associated with the dashboard
 	url = BASE_URL + ("/services/pdfgen/render?namespace=%s&input-dashboard=%s&paper-size=a4-landscape" % (namespace, dashboard))
@@ -346,10 +362,10 @@ def getDashboardPDF(namespace, dashboard, *userInput):
 		url = BASE_URL + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)
 	else:
 		# If there are tokens associated with the dashboard, get the dashboard xml, modify it with the default token values, and send to the pdfgen/render endpoint
-		optionalDashboardInputs = listDashboardInputs(namespace, dashboard)
+		optionalDashboardInputs = eval(listDashboardInputs(namespace, dashboard))
 		
 		if len(optionalDashboardInputs) > 0:
-			XMLDashboard = formatDashboardInput(namespace, dashboard, optionalDashboardInputs)
+			XMLDashboard = formatDashboardInput(namespace, dashboard, "%s" % optionalDashboardInputs)
 			url = BASE_URL + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)
 			
 	
@@ -360,7 +376,7 @@ def getDashboardPDF(namespace, dashboard, *userInput):
 	
 	# save the PDF locally with naming convention of: namespace_dashboard.pdf
 	if response.status == 200:
-		pdfFileName = ('pdf_files/%s_%s.pdf' % (namespace, dashboard))
+		pdfFileName = ('%s\pdf_files\%s_%s.pdf' % (PATH, namespace, dashboard))
 		pdfFile = open(pdfFileName,'wb')
 		pdfFile.write(content)
 		pdfFile.close()
@@ -369,16 +385,15 @@ def getDashboardPDF(namespace, dashboard, *userInput):
 		raise Exception("Could not find dashboard with name '%s'" % dashboard)
 
 	
-def getReportPDF(report):
+def getReportPdf(report):
 	"""
 		Gets a PDF rendering of a report/saved search and saves it to '/pdf_files/<report>.pdf'.
 		Uses the original time range of the report
 		Parameters:
 			report (required) = the name of the report
 	"""
-
-	print("Working on getting report PDF. This may take a while.")
-	pdfFileName = ('pdf_files/%s.pdf' % report)
+	print("[GET REPORT PDF] report=%s" % report)
+	pdfFileName = ('%s\pdf_files\%s.pdf' % (PATH, report))
 	report = report.replace(' ','%20')
 
 	url = BASE_URL + ("/services/pdfgen/render?input-report=%s&paper-size=a4-landscape" % report)
@@ -400,14 +415,14 @@ def getReportPDF(report):
 			raise Exception("An error occurred while generating PDF for report '%s'" % content.decode('utf-8'))
 
 
-def getSearchPDF(searchString):
+def getSearchPdf(searchString):
 	"""
 		Gets a PDF rendering of an ad hoc search and saves it to '/pdf_files/search.pdf'.
 		NOTE: this method can only return the default visualization
 		Parameters:
 			searchString (required) = the ad hoc search string in the Splunk Search Processing Language (SPL) 
 	"""
-	print("Working on getting search PDF. This may take a while.")
+	print("[GET SEARCH PDF] %s" % searchString)
 	searchString = searchString.replace(' ','%20')
 
 	url = BASE_URL + ("/services/pdfgen/render?input-search=%s&paper-size=a4-landscape" % (searchString))
@@ -418,7 +433,7 @@ def getSearchPDF(searchString):
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 
 	if response.status == 200:
-		pdfFileName = 'pdf_files/search.pdf'
+		pdfFileName = ('%s\pdf_files\search.pdf' % PATH)
 		pdfFile = open(pdfFileName,'wb')
 		pdfFile.write(content)
 		pdfFile.close()
@@ -427,7 +442,7 @@ def getSearchPDF(searchString):
 		raise Exception("%s" % content.decode('utf-8'))
 		
 
-def deletePDFFile(filePath):
+def deletePdfFile(filePath):
 	"""
 		Deletes the dashboard PDF file saved in the local directory
 		Parameters:
@@ -448,6 +463,7 @@ def disableAlert(savedSearchName, disableDuration=0):
 			savedSearchName (required) = the name of the saved search
 			disableDuration (optional) = How long to disable the alert (in minutes). If not set, the alert must be enabled manually
 	"""
+	print("[DISABLE ALERT] alert=%s" % savedSearchName)
 	# reformat saved search name for URL
 	savedSearchName = savedSearchName.replace(' ', '%20')
 	
@@ -478,6 +494,7 @@ def enableAlert(savedSearchName):
 		Parameters:
 			savedSearchName (required) = the name of the saved search
 	"""
+	print("[ENABLE ALERT] alert=%s" % savedSearchName)
 	# reformat saved search name for URL
 	savedSearchName = savedSearchName.replace(' ', '%20')
 	
@@ -513,6 +530,7 @@ def listDisabledAlerts(*searchString):
 		Parameters:
 			searchString (optional) = filters results. searchString is NOT case sensitive
 	"""
+	print("[LIST DISABLED ALERTS]")
 	response, content = myhttp.request(
 		BASE_URL + "/services/saved/searches?output_mode=json&count=0", 
 		'GET', 
@@ -531,8 +549,9 @@ def listDisabledAlerts(*searchString):
 			for entry in decodedContent["entry"]:
 				if entry["content"]["actions"] and entry["content"]["disabled"]:
 					listOfDisabledAlerts.append(entry["name"])
-				
-		return listOfDisabledAlerts
+		
+		listOfDisabledAlerts = "%s" % listOfDisabledAlerts
+		return listOfDisabledAlerts.replace(',',',\n')
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
@@ -545,6 +564,7 @@ def rescheduleAlert(savedSearchName, cronSchedule):
 			savedSearchName (required) = the name of the saved search
 			cronSchedule (required) = a cron schedule (i.e. to run at 30 minutes past each hour '30 * * * *')
 	"""
+	print("[RESCHEDULE ALERT] alert=%s, schedule=%s" % (savedSearchName, cronSchedule))
 	# reformat saved search name for URL
 	savedSearchName = savedSearchName.replace(' ', '%20')
 	
@@ -572,8 +592,9 @@ def listAppNames(*searchString):
 		Parameters:
 			searchString (optional) = filters results. searchString is NOT case sensitive
 	"""
+	print("[LIST APP NAMES]")
 	response, content = myhttp.request(
-		BASE_URL + "/services/apps/local?output_mode=json", 
+		BASE_URL + "/services/apps/local?output_mode=json&count=0", 
 		'GET', 
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 
@@ -589,8 +610,9 @@ def listAppNames(*searchString):
 		else:
 			for entry in decodedContent["entry"]:
 				listOfApps.append(entry["name"])
-				
-		return listOfApps
+		
+		listOfApps = "%s" % listOfApps
+		return listOfApps.replace(',',',\n')
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
