@@ -1,7 +1,6 @@
-from __future__ import print_function
 import requests
-import sys
 import json
+import urllib3
 from os import path
 from requests_toolbelt import MultipartEncoder
 
@@ -17,6 +16,7 @@ def connect(token, host):
 	HOST = host
 	Session = requests.Session()
 	Session.verify = False
+	urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 	
 	url = 'https://{0}/v2/room/{1}/history/latest'.format(HOST, ROOM)
 	headers = {'Authorization':'Bearer ' + TOKEN}
@@ -25,8 +25,6 @@ def connect(token, host):
 	response.raise_for_status()
 	results = json.loads(response.text)
 	lastProcessedMessageID = results['items'][0]['id']
-	print(results['items'][0]['message'])
-	print(results['items'][0]['id'])
 	
 def getEvents():
 	global lastProcessedMessageID
@@ -51,7 +49,19 @@ def postMessage(message, room):
 	url = 'https://{0}/v2/room/{1}/message'.format(HOST, ROOM)
 	headers = {'Authorization':'Bearer ' + TOKEN}
 	payload = {
-		'message': message
+		'message':message
+	}
+	response = Session.post(url, data=json.dumps(payload), headers=headers)
+	response.raise_for_status()
+	
+def postNotification(message, room, color = 'green', format = 'text'):
+	url = 'https://{0}/v2/room/{1}/notification'.format(HOST, ROOM)
+	headers = {'Content-type': 'application/json'}
+	headers['Authorization'] = "Bearer " + TOKEN
+	payload = {
+		'message':message,
+		'message_format':format,
+		'color': color
 	}
 	response = Session.post(url, data=json.dumps(payload), headers=headers)
 	response.raise_for_status()

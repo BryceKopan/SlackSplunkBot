@@ -15,27 +15,27 @@ def run_saved_search(commandParameters, channel):
 	
 def run_search(commandParameters, channel):
 	results = Splunk.runSearch(commandParameters[0])
-	table = Util.formatResultsAsTable(results)
-	HipChat.postMessage(table, channel)
+	table = Util.formatResultsAsHTMLTable(results)
+	HipChat.postNotification(table, channel, format = 'html')
 	
 def list_apps(commandParameters, channel):
 	if(len(commandParameters) > 0):
 		results = Splunk.listAppNames(commandParameters[0])
 	else:
 		results = Splunk.listAppNames()
-	HipChat.postMessage(results, channel)
+	HipChat.postMessage(str(results), channel)
 	
 def list_dashboards(commandParameters, channel):
 	if(len(commandParameters) > 1):
 		results = Splunk.listDashboardNames(commandParameters[0], commandParameters[1])
 	else:
 		results = Splunk.listDashboardNames(commandParameters[0])
-	HipChat.postMessage(results, channel)
+	HipChat.postMessage(str(results), channel)
 	
 def get_dashboard(commandParameters, channel):
 	Splunk.getDashboardPDF(commandParameters[0], commandParameters[1])
-	name = commandParameters[0] + "_" + commandParameters[1]
-	HipChat.postImage("pdf_files/"+ pdfName + ".pdf", pdfName, channel)
+	pdfName = commandParameters[0] + "_" + commandParameters[1]
+	HipChat.postFile("pdf_files/"+ pdfName + ".pdf", channel)
 	
 #Testing Commands
 

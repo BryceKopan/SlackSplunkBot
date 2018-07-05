@@ -7,5 +7,3 @@ convert pdf to image
 	-----HipChat-----
 dynamic monitoring rate starting at once every 3 seconds then going up as calls are used
 abstract HipChat REST API calls
-Display data as cards
-Suppress Warnings
