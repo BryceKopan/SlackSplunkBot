@@ -35,7 +35,9 @@ def list_dashboards(commandParameters, channel):
 def get_dashboard(commandParameters, channel):
 	Splunk.getDashboardPDF(commandParameters[0], commandParameters[1])
 	pdfName = commandParameters[0] + "_" + commandParameters[1]
-	HipChat.postFile("pdf_files/"+ pdfName + ".pdf", channel)
+	pngPaths = Util.convertPDFToPNG(pdfName)
+	for path in pngPaths:
+		HipChat.postFile(path, channel)
 	
 #Testing Commands
 

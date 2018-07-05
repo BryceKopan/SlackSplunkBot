@@ -3,7 +3,8 @@ if a command starts with the same thing as another command IE: test and test_ima
 	-----HipChat-----
 API throttle limit is 100 calls per 5 min. solution? dynamic monitoring rate
 ----------TODO----------
-convert pdf to image
-	-----HipChat-----
 dynamic monitoring rate starting at once every 3 seconds then going up as calls are used
-abstract HipChat REST API calls
+Global and Personal Aliasing
+index based parameter passing
+alert disabling
+image trimming
