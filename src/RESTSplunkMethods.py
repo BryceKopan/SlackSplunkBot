@@ -354,19 +354,19 @@ def getDashboardPdf(namespace, dashboard, *userInput):
 	print("[GET DASHBOARD PDF]: namespace=%s, dashboard=%s" % (namespace, dashboard))
 	
 	# This is the url to be used when there is no user input and no tokens associated with the dashboard
-	url = BASE_URL + ("/services/pdfgen/render?namespace=%s&input-dashboard=%s&paper-size=a4-landscape" % (namespace, dashboard))
+	url = BASE_URL + ("/services/pdfgen/render?namespace=%s&input-dashboard=%s&paper-size=a4-landscape&include-splunk-logo=False" % (namespace, dashboard))
 	
 	# If there is user input, get the dashboard xml, modify it with the user input, and send to the pdfgen/render endpoint
 	if userInput:
 		XMLDashboard = formatDashboardInput(namespace, dashboard, userInput[0])
-		url = BASE_URL + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)
+		url = BASE_URL + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape&include-splunk-logo=False" % XMLDashboard)
 	else:
 		# If there are tokens associated with the dashboard, get the dashboard xml, modify it with the default token values, and send to the pdfgen/render endpoint
 		optionalDashboardInputs = eval(listDashboardInputs(namespace, dashboard))
 		
 		if len(optionalDashboardInputs) > 0:
 			XMLDashboard = formatDashboardInput(namespace, dashboard, "%s" % optionalDashboardInputs)
-			url = BASE_URL + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape" % XMLDashboard)
+			url = BASE_URL + ("/services/pdfgen/render?input-dashboard-xml=%s&paper-size=a4-landscape&include-splunk-logo=False" % XMLDashboard)
 			
 	
 	response, content = myhttp.request(
@@ -396,7 +396,7 @@ def getReportPdf(report):
 	pdfFileName = ('%s\pdf_files\%s.pdf' % (PATH, report))
 	report = report.replace(' ','%20')
 
-	url = BASE_URL + ("/services/pdfgen/render?input-report=%s&paper-size=a4-landscape" % report)
+	url = BASE_URL + ("/services/pdfgen/render?input-report=%s&paper-size=a4-landscape&include-splunk-logo=False" % report)
 
 	response, content = myhttp.request(
 		url,
@@ -425,7 +425,7 @@ def getSearchPdf(searchString):
 	print("[GET SEARCH PDF] %s" % searchString)
 	searchString = searchString.replace(' ','%20')
 
-	url = BASE_URL + ("/services/pdfgen/render?input-search=%s&paper-size=a4-landscape" % (searchString))
+	url = BASE_URL + ("/services/pdfgen/render?input-search=%s&paper-size=a4-landscape&include-splunk-logo=False" % (searchString))
 
 	response, content = myhttp.request(
 		url,
