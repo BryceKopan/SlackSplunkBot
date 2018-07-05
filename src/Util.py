@@ -1,3 +1,5 @@
+from wand.image import Image
+from wand.color import Color
 
 def formatResultsAsTable(results):
 	tableString = ''
@@ -85,3 +87,18 @@ def formatResultsAsHTMLTable(results):
 		tableString = "No Results"
 		
 	return tableString
+	
+def convertPDFToPNG(pdfName):
+	pdfPath = 'pdf_files/{}.pdf'.format(pdfName)
+	pngPaths = []
+	
+	with Image(filename=pdfPath, resolution=200) as source:
+		images=source.sequence
+		pages=len(images)
+		for i in range(pages):
+			Image(images[i]).background_color = Color("white")
+			Image(images[i]).alpha_channel = 'remove'
+			pngPath = 'pdf_files/{}{}.png'.format(pdfName, str(i))
+			Image(images[i]).save(filename=pngPath)
+			pngPaths.append(pngPath)
+	return pngPaths
