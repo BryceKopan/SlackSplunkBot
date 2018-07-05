@@ -94,11 +94,14 @@ def convertPDFToPNG(pdfName):
 	
 	with Image(filename=pdfPath, resolution=200) as source:
 		images=source.sequence
-		pages=len(images)
-		for i in range(pages):
-			Image(images[i]).background_color = Color("white")
-			Image(images[i]).alpha_channel = 'remove'
-			pngPath = 'pdf_files/{}{}.png'.format(pdfName, str(i))
-			Image(images[i]).save(filename=pngPath)
+		for index, singleImg in enumerate(images):
+			pngPath = 'pdf_files/{}{}.png'.format(pdfName, str(index))
+			img = Image(singleImg)
+			img.background_color=Color('snow4')
+			img.alpha_channel='remove'
+			img.trim(fuzz=50)
+			img.trim(fuzz=50)
+			img.trim()
+			img.save(filename=pngPath)
 			pngPaths.append(pngPath)
 	return pngPaths
