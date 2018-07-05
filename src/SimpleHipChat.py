@@ -29,54 +29,62 @@ def connect(token, host):
 def getEvents():
 	global lastProcessedMessageID
 	
-	url = 'https://{0}/v2/room/{1}/history/latest'.format(HOST, ROOM)
+	url = 'history/latest?not-before={}'.format(lastProcessedMessageID)
 	headers = {'Authorization':'Bearer ' + TOKEN}
-	url += '?not-before=' + lastProcessedMessageID
-	response = Session.get(url, headers=headers)
-	response.raise_for_status()
+	response = getHTTP(url, headers=headers)
 	results = json.loads(response.text)
 	for result in results['items']:
 		result['channel'] = ROOM
 	headers = response.headers
 	print(headers['X-Ratelimit-Limit'])
 	print(headers['X-Ratelimit-Remaining'])
+	print(headers['X-Ratelimit-Reset'])
 	
 	lastProcessedMessageID = results['items'][len(results['items']) - 1]['id']
 	del results['items'][0]
 	return results
 	
 def postMessage(message, room):
-	url = 'https://{0}/v2/room/{1}/message'.format(HOST, ROOM)
-	headers = {'Authorization':'Bearer ' + TOKEN}
-	payload = {
+	url = 'message'
+	payload = json.dumps({
 		'message':message
-	}
-	response = Session.post(url, data=json.dumps(payload), headers=headers)
-	response.raise_for_status()
+	})
+	postHTTP(url, payload)
 	
 def postNotification(message, room, color = 'green', format = 'text'):
-	url = 'https://{0}/v2/room/{1}/notification'.format(HOST, ROOM)
+	url = 'notification'
 	headers = {'Content-type': 'application/json'}
-	headers['Authorization'] = "Bearer " + TOKEN
-	payload = {
-		'message':message,
+	payload = json.dumps({
+		'message'		:message,
 		'message_format':format,
-		'color': color
-	}
-	response = Session.post(url, data=json.dumps(payload), headers=headers)
-	response.raise_for_status()
+		'color'			:color
+	})
+	postHTTP(url, payload, headers)
 	
 def postFile(filePath, room = 18):
-	url = 'https://{0}/v2/room/{1}/share/file'.format(HOST, ROOM)
-	headers = {'Content-type':'multipart/related; boundary=boundary123456'}
-	headers['Authorization'] = 'Bearer ' + TOKEN
-
-	m = MultipartRelatedEncoder(fields={'metadata' : (None, '', 'application/json; charset=UTF-8'),
-										'file'     : (path.basename(filePath), open(filePath, 'rb'), 'text/csv')})
-										
-	headers['Content-Type'] = m.content_type
+	url = 'share/file'
+	payload = MultipartRelatedEncoder({
+		'metadata'	:(None, '', 'application/json; charset=UTF-8'),
+		'file'		:(path.basename(filePath), open(filePath, 'rb'), 'text/csv')
+	})									
+	headers = {'Content-type':payload.content_type}
+	postHTTP(url, payload, headers)
 	
-	r = Session.post(url, data=m, headers=headers)
+def postHTTP(url = '', payload = {}, headers = {}):
+	url = 'https://{}/v2/room/{}/{}'.format(HOST, ROOM, url)
+	authHeader = {'Authorization':'Bearer ' + TOKEN}
+	headers = {**authHeader, **headers}
+	response = Session.post(url, data=payload, headers=headers)
+	response.raise_for_status()
+	return response
+	
+def getHTTP(url = '', payload = {}, headers = {}):
+	url = 'https://{}/v2/room/{}/{}'.format(HOST, ROOM, url)
+	authHeader = {'Authorization':'Bearer ' + TOKEN}
+	headers = {**authHeader, **headers}
+	response = Session.get(url, data=payload, headers=headers)
+	response.raise_for_status()
+	return response
 	
 class MultipartRelatedEncoder(MultipartEncoder):
 	"""A multipart/related encoder"""

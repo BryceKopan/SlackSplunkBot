@@ -23,13 +23,19 @@ if __name__ == "__main__":
 	print("\nSplunkBot connected to Splunk")
 	
 	while True:
-		command, channel = Command.parseBotCommands(HipChat.getEvents(), trigger)
-		if command:
-			try:
-				print(command)
-				Command.handleCommand(command, channel)
-			except Exception:
-				HipChat.postMessage("Error Running Command: {}".format(command), channel)
-				print("\nError Running Command: {}\n".format(command))
-				traceback.print_exc()
+		try:
+			command, channel = Command.parseBotCommands(HipChat.getEvents(), trigger)
+			
+			if command:
+				try:
+					print(command)
+					Command.handleCommand(command, channel)
+				except Exception:
+					HipChat.postMessage("Error Running Command: {}".format(command), channel)
+					print("\nError Running Command: {}\n".format(command))
+					traceback.print_exc()
+		except Exception:
+			print("\nError parsing chat for commands\n")
+			traceback.print_exc()
+			
 		time.sleep(RTM_READ_DELAY)
