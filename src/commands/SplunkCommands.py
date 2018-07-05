@@ -1,33 +1,41 @@
 import os
 import RESTSplunkMethods as Splunk
-import SlackAPI as Slack
 import Util
+import SimpleHipChat as HipChat
 
 enviroment = "ITest"
 
 def list_saved_searches(commandParameters, channel):
 	results = Splunk.listSavedSearches()
-	Slack.postMessage(results, channel)
+	HipChat.postMessage(results, channel)
 	
 def run_saved_search(commandParameters, channel):
 	results = Splunk.runSavedSearch(commandParameters[0])
-	Slack.postMessage(results, channel)
+	HipChat.postMessage(results, channel)
 	
 def run_search(commandParameters, channel):
 	results = Splunk.runSearch(commandParameters[0])
-	table = Util.formatResultsAsTable(results)
-	Slack.postMessage(table, channel, False)
+	table = Util.formatResultsAsHTMLTable(results)
+	HipChat.postNotification(table, channel, format = 'html')
 	
 def list_apps(commandParameters, channel):
 	if(len(commandParameters) > 0):
 		results = Splunk.listAppNames(commandParameters[0])
 	else:
 		results = Splunk.listAppNames()
-	Slack.postMessage(results, channel)
+	HipChat.postMessage(str(results), channel)
 	
 def list_dashboards(commandParameters, channel):
-	results = Splunk.listDashboardNames(commandParameters[0])
-	Slack.postMessage(results, channel)
+	if(len(commandParameters) > 1):
+		results = Splunk.listDashboardNames(commandParameters[0], commandParameters[1])
+	else:
+		results = Splunk.listDashboardNames(commandParameters[0])
+	HipChat.postMessage(str(results), channel)
+	
+def get_dashboard(commandParameters, channel):
+	Splunk.getDashboardPDF(commandParameters[0], commandParameters[1])
+	pdfName = commandParameters[0] + "_" + commandParameters[1]
+	HipChat.postFile("pdf_files/"+ pdfName + ".pdf", channel)
 	
 #Testing Commands
 
@@ -41,7 +49,7 @@ def connect_to(commandParameters, channel):
 		PASSWORD = os.environ.get('SPLUNK_PASSWORD')
 		
 		Splunk.connect(BASE_URL, USERNAME, PASSWORD)
-		Slack.postMessage("Connected to ITest", channel)
+		HipChat.postMessage("Connected to ITest", channel)
 		
 	elif commandParameters == "Local":
 		enviroment = commandParameters
@@ -50,7 +58,7 @@ def connect_to(commandParameters, channel):
 		PASSWORD = os.environ.get('SPLUNK_LOCAL_PASSWORD')
 		
 		Splunk.connect(BASE_URL, USERNAME, PASSWORD)
-		Slack.postMessage("Connected to Local", channel)
+		HipChat.postMessage("Connected to Local", channel)
 		
 def which_enviroment(commandParameters, channel):
-	Slack.postMessage("I am currently connected to {}".format(enviroment), channel)
+	HipChat.postMessage("I am currently connected to {}".format(enviroment), channel)

@@ -1,6 +1,6 @@
 
 def formatResultsAsTable(results):
-	tableString = ""
+	tableString = ''
 	maxCharcterSizes = []
 	
 	if(len(results) > 0):
@@ -15,45 +15,72 @@ def formatResultsAsTable(results):
 
 		#maxCharcterSizes[:] = [i + 1 for i in maxCharcterSizes]
 			
-		tableString += "┌─"
+		tableString += '┌─'
 		
 		for index, (characterLength) in enumerate(maxCharcterSizes):
-			tableString += "─" * characterLength
+			tableString += '─' * characterLength
 			if(index + 1 < len(maxCharcterSizes)):
-				tableString += "─┬─"
+				tableString += '─┬─'
 		
-		tableString += "─┐\n"
+		tableString += '─┐\n'
 			
-		tableString += "│ "
+		tableString += '│ '
 			
 		for index, (key, value) in enumerate(results[0].items()):
-			tableString += "{}{}{} │ ".format("{:", maxCharcterSizes[index],"}").format(key)
+			tableString += '{}{}{} │ '.format('{:', maxCharcterSizes[index],'}').format(key)
 				
-		tableString += "\n├─"
+		tableString += '\n├─'
 		
 		for index, (characterLength) in enumerate(maxCharcterSizes):
-			tableString += "─" * characterLength
+			tableString += '─' * characterLength
 			if(index + 1 < len(maxCharcterSizes)):
-				tableString += "─┼─"
+				tableString += '─┼─'
 		
-		tableString += "─┤\n"
+		tableString += '─┤\n'
 		
 		for dict in results:
-			tableString += "│ "
+			tableString += '│ '
 		
 			for index, (key, value) in enumerate(dict.items()):
-				tableString += "{}{}{} │ ".format("{:", maxCharcterSizes[index],"}").format(value)
+				tableString += '{}{}{} │ '.format('{:', maxCharcterSizes[index],'}').format(value)
 				
-			tableString += "\n"
+			tableString += '\n'
 				
-		tableString += "└─"
+		tableString += '└─'
 		
 		for index, (characterLength) in enumerate(maxCharcterSizes):
-			tableString += "─" * characterLength
+			tableString += '─' * characterLength
 			if(index + 1 < len(maxCharcterSizes)):
-				tableString += "─┴─"
+				tableString += '─┴─'
 		
-		tableString += "─┘"
+		tableString += '─┘'
+	else:
+		tableString = "No Results"
+		
+	return tableString
+	
+def formatResultsAsHTMLTable(results):
+	tableString = '<table style="width:100%" align="left">'
+	maxCharcterSizes = []
+	
+	if(len(results) > 0):
+		
+		tableString += '<tr>'
+		
+		for key, value in results[0].items():
+			tableString += '<th>{}</th>'.format(key)	
+			
+		tableString += '</tr>'
+		
+		for dict in results:
+			tableString += '<tr>'
+		
+			for key, value in dict.items():
+				tableString += '<td>{}</td>'.format(value)
+				
+			tableString += '</tr>'
+				
+		tableString += '</table>'
 	else:
 		tableString = "No Results"
 		
