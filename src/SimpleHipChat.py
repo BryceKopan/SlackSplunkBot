@@ -9,6 +9,8 @@ HOST = None
 ROOM = '18'
 Session = None
 lastProcessedMessageID = None
+rateLimit = {'limit':0, 'remaining':0, 'reset':0}
+floodControl = {'limit':0, 'remaining':0, 'reset':0}
 
 def connect(token, host):
 	global TOKEN, HOST, ROOM, Session, lastProcessedMessageID
@@ -31,14 +33,10 @@ def getEvents():
 	
 	url = 'history/latest?not-before={}'.format(lastProcessedMessageID)
 	headers = {'Authorization':'Bearer ' + TOKEN}
-	response = getHTTP(url, headers=headers)
+	response = getHTTP(url, partialHeaders=headers)
 	results = json.loads(response.text)
 	for result in results['items']:
 		result['channel'] = ROOM
-	headers = response.headers
-	print(headers['X-Ratelimit-Limit'])
-	print(headers['X-Ratelimit-Remaining'])
-	print(headers['X-Ratelimit-Reset'])
 	
 	lastProcessedMessageID = results['items'][len(results['items']) - 1]['id']
 	del results['items'][0]
@@ -70,21 +68,46 @@ def postFile(filePath, room = 18):
 	headers = {'Content-type':payload.content_type}
 	postHTTP(url, payload, headers)
 	
-def postHTTP(url = '', payload = {}, headers = {}):
-	url = 'https://{}/v2/room/{}/{}'.format(HOST, ROOM, url)
-	authHeader = {'Authorization':'Bearer ' + TOKEN}
-	headers = {**authHeader, **headers}
+def postHTTP(paritalURL = '', payload = {}, partialHeaders = {}):
+	url, headers = constructHTTP(paritalURL, partialHeaders)
 	response = Session.post(url, data=payload, headers=headers)
-	response.raise_for_status()
+	processHTTPResponse(response)
 	return response
 	
-def getHTTP(url = '', payload = {}, headers = {}):
-	url = 'https://{}/v2/room/{}/{}'.format(HOST, ROOM, url)
-	authHeader = {'Authorization':'Bearer ' + TOKEN}
-	headers = {**authHeader, **headers}
+def getHTTP(paritalURL = '', payload = {}, partialHeaders = {}):
+	url, headers = constructHTTP(paritalURL, partialHeaders)
 	response = Session.get(url, data=payload, headers=headers)
-	response.raise_for_status()
+	processHTTPResponse(response)
 	return response
+	
+def constructHTTP(partialURL, partialHeaders):
+	url = 'https://{}/v2/room/{}/{}'.format(HOST, ROOM, partialURL)
+	authHeader = {'Authorization':'Bearer ' + TOKEN}
+	headers = {**authHeader, **partialHeaders}
+	return url, headers
+	
+def processHTTPResponse(response):
+	global rateLimit, floodControl
+
+	response.raise_for_status()
+	
+	headers = response.headers
+	rateLimit['limit'] 		= headers['X-Ratelimit-Limit']
+	rateLimit['remaining'] 	= headers['X-Ratelimit-Remaining']
+	rateLimit['reset'] 		= headers['X-Ratelimit-Reset']
+	try:
+		floodControl['limit'] 		= headers['X-FloodControl-Limit']
+		floodControl['remaining'] 	= headers['X-FloodControl-Remaining']
+		floodControl['reset'] 		= headers['X-FloodControl-Reset']
+	except Exception:
+		pass
+		
+	if int(rateLimit['remaining']) == 2:
+		print("RateLimitHIt")
+		postMessage("HipChat REST RateLimit as been reached.", ROOM)
+		
+	if int(floodControl['remaining']) == 2:
+		postMessage("HipChat REST FloodControl as been reached.", ROOM)
 	
 class MultipartRelatedEncoder(MultipartEncoder):
 	"""A multipart/related encoder"""

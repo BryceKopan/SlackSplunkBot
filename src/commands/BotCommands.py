@@ -28,3 +28,7 @@ def raise_error(commandParameters, channel):
 	
 def test(commandParameters, channel):
 	HipChat.postMessage("Test \n new line", channel)
+	
+def api_throttle_test(commandParameters, channel):
+	for i in range(100):
+		HipChat.postMessage(str(i), channel)
