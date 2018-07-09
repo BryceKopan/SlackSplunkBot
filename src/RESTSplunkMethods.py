@@ -119,23 +119,66 @@ def listSavedSearches(*searchString):
 	decodedContent = json.loads(content.decode('utf-8'))
 	
 	if response.status == 200:
-		listOfSavedSearches = []
+		listOfSavedSearches = {
+			"Reports": [],
+			"Alerts": []
+		}
 		
 		if searchString:
 			for entry in decodedContent["entry"]:
-				if ("%s" % searchString).lower() in entry["name"].lower() and entry["content"]["is_visible"]:
-					listOfSavedSearches.append(entry["name"])
+				if ("%s" % searchString).lower() in entry["name"].lower() and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
+					listOfSavedSearches["Reports"].append(entry["name"])
+				elif ("%s" % searchString).lower() in entry["name"].lower() and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
+					listOfSavedSearches["Alerts"].append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
-				if entry["content"]["is_visible"]:
-					listOfSavedSearches.append(entry["name"])
+				if entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
+					listOfSavedSearches["Reports"].append(entry["name"])
+				elif entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
+					listOfSavedSearches["Alerts"].append(entry["name"])
 		
-		listOfSavedSearches = "%s" % listOfSavedSearches	
-		return listOfSavedSearches.replace(',',',\n')
+		listOfSavedSearches = "%s" % listOfSavedSearches
+		listOfSavedSearches = listOfSavedSearches.replace("',","',\n\t")
+		listOfSavedSearches = listOfSavedSearches.replace('[','[\n\t ')
+		listOfSavedSearches = listOfSavedSearches.replace("'Alerts': [","\n 'Alerts': [")
+		return listOfSavedSearches
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
+
+		
+def listReportNames(*searchString):
+	"""
+		Lists the names of saved searches (reports & alerts). Returns results in JSON form.
+		Parameters:
+			searchString (optional) = filters results. searchString is NOT case sensitive
+	"""
+	print("[LIST REPORT NAMES]")
+	response, content = myhttp.request(
+		BASE_URL + "/services/saved/searches?output_mode=json&count=0", 
+		'GET', 
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
+
+	decodedContent = json.loads(content.decode('utf-8'))
 	
+	if response.status == 200:
+		listOfReports = []
+		
+		if searchString:
+			for entry in decodedContent["entry"]:
+				if ("%s" % searchString).lower() in entry["name"].lower() and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
+					listOfReports.append(entry["name"])
+		else:
+			for entry in decodedContent["entry"]:
+				if entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
+					listOfReports.append(entry["name"])
+		
+		listOfReports = "%s" % listOfReports	
+		return listOfReports.replace(',',',\n')
+	else:
+		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
+		raise Exception(errorMessage)
+		
 	
 def runSavedSearch(savedSearchName, triggerActions=False):
 	"""
@@ -455,6 +498,39 @@ def deletePdfFile(filePath):
 
 	
 # ---------------------------------------- ALERT METHODS ----------------------------------------
+
+def listAlertNames(*searchString):
+	"""
+		Lists the names of saved searches (reports & alerts). Returns results in JSON form.
+		Parameters:
+			searchString (optional) = filters results. searchString is NOT case sensitive
+	"""
+	print("[LIST ALERT NAMES]")
+	response, content = myhttp.request(
+		BASE_URL + "/services/saved/searches?output_mode=json&count=0", 
+		'GET', 
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
+
+	decodedContent = json.loads(content.decode('utf-8'))
+	
+	if response.status == 200:
+		listOfAlerts = []
+		
+		if searchString:
+			for entry in decodedContent["entry"]:
+				if ("%s" % searchString).lower() in entry["name"].lower() and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
+					listOfAlerts.append(entry["name"])
+		else:
+			for entry in decodedContent["entry"]:
+				if entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
+					listOfAlerts.append(entry["name"])
+		
+		listOfAlerts = "%s" % listOfAlerts	
+		return listOfAlerts.replace(',',',\n')
+	else:
+		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
+		raise Exception(errorMessage)
+	
 	
 def disableAlert(savedSearchName, disableDuration=0):
 	"""
