@@ -31,4 +31,11 @@ def test(commandParameters, channel):
 	
 def api_throttle_test(commandParameters, channel):
 	for i in range(100):
+		HipChat.getEvents()
+		HipChat.getEvents()
+		HipChat.getEvents()
+		HipChat.postMessage(str(i * 4), channel)
+	
+def api_flood_test(commandParameters, channel):
+	for i in range(100):
 		HipChat.postMessage(str(i), channel)

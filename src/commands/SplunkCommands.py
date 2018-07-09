@@ -3,7 +3,7 @@ import RESTSplunkMethods as Splunk
 import Util
 import SimpleHipChat as HipChat
 
-enviroment = "ITest"
+enviroment = "LOCAL"
 
 def list_saved_searches(commandParameters, channel):
 	results = Splunk.listSavedSearches()
@@ -38,14 +38,29 @@ def get_dashboard(commandParameters, channel):
 	pngPaths = Util.convertPDFToPNG(pdfName)
 	for path in pngPaths:
 		HipChat.postFile(path, channel)
+		
+def list_disabled_alerts(commandParameters, channel):
+	if(len(commandParameters) > 0):
+		results = Splunk.listDisabledAlerts(commandParameters[0])
+	else:
+		results = Splunk.listDisabledAlerts()
+	HipChat.postMessage(str(results), channel)
+		
+def enable_alert(commandParameters, channel):
+	Splunk.enableAlert(commandParameters[0])
+	HipChat.postMessage("{} enabled".format(commandParameters[0]), channel)
+		
+def disable_alert(commandParameters, channel):
+	Splunk.disableAlert(commandParameters[0], int(commandParameters[1]))
+	HipChat.postMessage("{} disabled for {} minutes".format(commandParameters[0], commandParameters[1]), channel)
 	
 #Testing Commands
 
 def connect_to(commandParameters, channel):
 	global enviroment
-
-	if commandParameters == "ITest":
-		enviroment = commandParameters
+	
+	if commandParameters[0].upper() == "ITEST":
+		enviroment = commandParameters[0].upper()
 		BASE_URL = "https://splunk-itest.ercot.com:8089"
 		USERNAME = os.environ.get('SPLUNK_USERNAME')
 		PASSWORD = os.environ.get('SPLUNK_PASSWORD')
@@ -53,8 +68,8 @@ def connect_to(commandParameters, channel):
 		Splunk.connect(BASE_URL, USERNAME, PASSWORD)
 		HipChat.postMessage("Connected to ITest", channel)
 		
-	elif commandParameters == "Local":
-		enviroment = commandParameters
+	elif commandParameters[0].upper() == "LOCAL":
+		enviroment = commandParameters[0].upper()
 		BASE_URL = "https://localhost:8089"
 		USERNAME = os.environ.get('SPLUNK_LOCAL_USERNAME')
 		PASSWORD = os.environ.get('SPLUNK_LOCAL_PASSWORD')
