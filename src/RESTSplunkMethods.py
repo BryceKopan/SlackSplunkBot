@@ -5,6 +5,7 @@ from xml.dom import minidom
 
 BASE_URL = None
 USER = None
+PASSWORD = None
 SESSION_KEY = None
 SEARCH_TTL = 10
 PATH = os.path.abspath(os.path.dirname(__file__))
@@ -20,9 +21,10 @@ def connect(urlPrefix, username, password):
 			password (required) = Splunk password
 	"""
 	print("[CONNECT]")
-	global BASE_URL, USER
+	global BASE_URL, USER, PASSWORD
 	BASE_URL = urlPrefix
 	USER = username
+	PASSWORD = password
 	
 	response, content = myhttp.request(
 		BASE_URL + '/services/auth/login?output_mode=json',
@@ -37,18 +39,37 @@ def connect(urlPrefix, username, password):
 		SESSION_KEY = decodedContent["sessionKey"]
 		print("Successfully connected to Splunk server")
 		thread = threading.Thread(target=autoReconnect, args=(urlPrefix, username, password))
-		# thread.start()
+		# thread.start() # turn on when in production
 		
 		return
 	else:
 		errorMessage = decodedContent["messages"][0]["text"]
 		raise Exception("%s - %s" % (response.status, errorMessage))
 
+		
 def autoReconnect(urlPrefix, username, password):
 	sleep(59 * 60) # sleep for 59 minutes
 	print("[AUTO RECONNECT] Attempting to reconnect with Splunk server")
 	return connect(urlPrefix, username, password)
 
+	
+def checkConnection():
+	"""
+		Calls the current-context endpoint since it is fast. If the response status is 200, the connection is alive.
+		If the status does not equal 200, it will try and reconnect
+	"""
+	print("[CHECKING CONNECTION]")
+	response, content = myhttp.request(
+		BASE_URL + '/services/authentication/current-context',
+		'GET',
+		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
+	
+	if response.status != 200:
+		print("Connection timed out. Trying to reconnect")
+		return connect(BASE_URL, USER, PASSWORD)
+	else:
+		print("Connection is live")
+		return
 		
 # ---------------------------------------- SEARCH METHODS ----------------------------------------	
  
