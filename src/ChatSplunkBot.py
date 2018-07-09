@@ -20,7 +20,6 @@ if __name__ == "__main__":
 	print("\nSplunkBot connected to HipChat")
 	
 	Splunk.connect(SPLUNK_BASE_URL, USERNAME, PASSWORD)
-	print("\nSplunkBot connected to Splunk")
 	
 	while True:
 		try:
@@ -28,6 +27,7 @@ if __name__ == "__main__":
 			
 			if command:
 				try:
+					Splunk.checkConnection()
 					print(command)
 					Command.handleCommand(command, channel)
 				except Exception:

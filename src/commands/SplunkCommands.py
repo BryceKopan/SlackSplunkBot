@@ -6,8 +6,18 @@ import SimpleHipChat as HipChat
 enviroment = "LOCAL"
 
 def list_saved_searches(commandParameters, channel):
-	results = Splunk.listSavedSearches()
-	HipChat.postMessage(results, channel)
+	if(len(commandParameters) > 0):
+		results = Splunk.listSavedSearches(commandParameters[0])
+	else:
+		results = Splunk.listSavedSearches()
+	HipChat.postMessage(str(results), channel)
+	
+def list_reports(commandParameters, channel):
+	if(len(commandParameters) > 0):
+		results = Splunk.listReportNames(commandParameters[0])
+	else:
+		results = Splunk.listReportNames()
+	HipChat.postMessage(str(results), channel)
 	
 def run_saved_search(commandParameters, channel):
 	results = Splunk.runSavedSearch(commandParameters[0])
@@ -39,6 +49,13 @@ def get_dashboard(commandParameters, channel):
 	for path in pngPaths:
 		HipChat.postFile(path, channel)
 		
+def list_alerts(commandParameters, channel):
+	if(len(commandParameters) > 0):
+		results = Splunk.listAlertNames(commandParameters[0])
+	else:
+		results = Splunk.listAlertNames()
+	HipChat.postMessage(str(results), channel)
+		
 def list_disabled_alerts(commandParameters, channel):
 	if(len(commandParameters) > 0):
 		results = Splunk.listDisabledAlerts(commandParameters[0])
@@ -51,8 +68,12 @@ def enable_alert(commandParameters, channel):
 	HipChat.postMessage("{} enabled".format(commandParameters[0]), channel)
 		
 def disable_alert(commandParameters, channel):
-	Splunk.disableAlert(commandParameters[0], int(commandParameters[1]))
-	HipChat.postMessage("{} disabled for {} minutes".format(commandParameters[0], commandParameters[1]), channel)
+	if(len(commandParameters) > 1):
+		Splunk.disableAlert(commandParameters[0], int(commandParameters[1]))
+		HipChat.postMessage("{} disabled for {} minutes".format(commandParameters[0], commandParameters[1]), channel)
+	else:
+		Splunk.disableAlert(commandParameters[0])
+		HipChat.postMessage("{} disabled".format(commandParameters[0]), channel)
 	
 #Testing Commands
 
