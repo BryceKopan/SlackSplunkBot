@@ -5,6 +5,7 @@ def formatResultsAsTable(results):
 	tableString = ''
 	maxCharcterSizes = []
 	
+	print(results)
 	if(len(results) > 0):
 	
 		for key, value in results[0].items():
@@ -88,6 +89,14 @@ def formatResultsAsHTMLTable(results):
 		
 	return tableString
 	
+def formatArray(array):
+	formattedArray = ""
+
+	for entry in array:
+		formattedArray += '{}\n'.format(entry)
+		
+	return formattedArray
+	
 def convertPDFToPNG(pdfName):
 	pdfPath = 'pdf_files/{}.pdf'.format(pdfName)
 	pngPaths = []
@@ -97,11 +106,16 @@ def convertPDFToPNG(pdfName):
 		for index, singleImg in enumerate(images):
 			pngPath = 'pdf_files/{}{}.png'.format(pdfName, str(index))
 			img = Image(singleImg)
-			img.background_color=Color('snow4')
-			img.alpha_channel='remove'
-			img.trim(fuzz=50)
-			img.trim(fuzz=50)
-			img.trim()
+			img = removeSplunkBorderFromPNG(img)
 			img.save(filename=pngPath)
 			pngPaths.append(pngPath)
 	return pngPaths
+
+def removeSplunkBorderFromPNG(img):
+	img.background_color=Color('snow4')
+	img.alpha_channel='remove'
+	img.trim(fuzz=50)
+	img.trim(fuzz=50)
+	img.trim()
+	return img
+	

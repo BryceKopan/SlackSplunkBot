@@ -3,11 +3,11 @@ import __main__
 import SimpleHipChat as HipChat
 
 def restart(commandParameters, channel):
-	HipChat.postMessage("Restarting", channel)
+	HipChat.postNotification("Restarting", channel)
 	os.execl(sys.executable, 'python', __main__.__file__, *sys.argv[1:])
 	
 def shutdown(commandParameters, channel):
-	HipChat.postMessage("Shutting Down", channel)
+	HipChat.postNotification("Shutting Down", channel)
 	sys.exit("Shutdown command used")
 	
 #Testing Commands
@@ -27,15 +27,15 @@ def raise_error(commandParameters, channel):
 	raise Exception("Test Error")
 	
 def test(commandParameters, channel):
-	HipChat.postMessage("Test \n new line", channel)
+	HipChat.postNotification("Test \n new line", channel)
 	
 def api_throttle_test(commandParameters, channel):
 	for i in range(100):
 		HipChat.getEvents()
 		HipChat.getEvents()
 		HipChat.getEvents()
-		HipChat.postMessage(str(i * 4), channel)
+		HipChat.postNotification(str(i * 4), channel)
 	
 def api_flood_test(commandParameters, channel):
 	for i in range(100):
-		HipChat.postMessage(str(i), channel)
+		HipChat.postNotification(str(i), channel)

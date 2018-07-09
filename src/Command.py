@@ -20,9 +20,9 @@ def handleCommand(command, channel):
 		commandList = ''
 		for commandString, commandFunction in botCommands:
 			commandList += commandString.replace('_', ' ') + '\n'
-		HipChat.postMessage(commandList, channel)
+		HipChat.postNotification(commandList, channel)
 	else:
-		HipChat.postMessage("Not sure what you mean. Try *{}*.".format('help'), channel)
+		HipChat.postNotification("Not sure what you mean. Try *{}*.".format('help'), channel)
 		
 def parseBotCommands(events, trigger):
 	"""
