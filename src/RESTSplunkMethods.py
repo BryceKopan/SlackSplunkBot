@@ -149,7 +149,7 @@ def listSavedSearches(*searchString):
 		
 def listReportNames(*searchString):
 	"""
-		Lists the names of saved searches (reports & alerts). Returns results in JSON form.
+		Lists the names of reports. Returns results in JSON form.
 		Parameters:
 			searchString (optional) = filters results. searchString is NOT case sensitive
 	"""
@@ -501,7 +501,7 @@ def deletePdfFile(filePath):
 
 def listAlertNames(*searchString):
 	"""
-		Lists the names of saved searches (reports & alerts). Returns results in JSON form.
+		Lists the names of alerts. Returns results in JSON form.
 		Parameters:
 			searchString (optional) = filters results. searchString is NOT case sensitive
 	"""
