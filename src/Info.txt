@@ -6,4 +6,9 @@ API throttle limit is 100 calls per 5 min. solution? dynamic monitoring rate
 dynamic monitoring rate starting at once every 3 seconds then going up as calls are used
 Global and Personal Aliasing
 index based parameter passing
-list formating
+documentation
+help revamp
+	list commands command
+	details command
+	error command
+output after receiving command

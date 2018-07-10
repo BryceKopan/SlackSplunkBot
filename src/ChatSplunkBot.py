@@ -12,7 +12,7 @@ USERNAME = os.environ.get('SPLUNK_LOCAL_USERNAME')
 PASSWORD = os.environ.get('SPLUNK_LOCAL_PASSWORD')
 
 #constants
-RTM_READ_DELAY = 5 # second delay between reading from RTM
+RTM_READ_DELAY = 5 #second delay between reading from RTM
 
 if __name__ == "__main__":
 	HipChat.connect(HIPCHAT_BOT_TOKEN, HIPCHAT_HOST)
@@ -31,7 +31,7 @@ if __name__ == "__main__":
 					print(command)
 					Command.handleCommand(command, channel)
 				except Exception:
-					HipChat.postMessage("Error Running Command: {}".format(command), channel)
+					HipChat.postNotification("Error Running Command: {}".format(command), channel)
 					print("\nError Running Command: {}\n".format(command))
 					traceback.print_exc()
 		except Exception:

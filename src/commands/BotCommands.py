@@ -12,6 +12,10 @@ def shutdown(commandParameters, channel):
 	
 #Testing Commands
 	
+def self_command_test(commandParameters, channel):
+	HipChat.postNotification("!test", channel)
+	return
+	
 def post_image(commandParameters, channel):
 	HipChat.postFile('res\\SplunkBot.png')
 	return

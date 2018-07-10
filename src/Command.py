@@ -31,7 +31,7 @@ def parseBotCommands(events, trigger):
 		If its not found, then this function returns None, None.
 	"""
 	for event in events['items']:#events:
-		if event['type'] == 'message': #and not 'subtype' in event:
+		if event['type'] == 'message' or event['type'] == 'notification': #and not 'subtype' in event:
 			triggered, message = parseDirectMention(event['message'], trigger)#event['text'])
 			if triggered:
 				return message, event['channel']
