@@ -233,7 +233,7 @@ def runSearch(searchString):
 			searchString (required) = the ad hoc search string in the Splunk Search Processing Language (SPL)
 	"""
 	print("[RUN SEARCH]: %s" % searchString)
-	if not searchString.startswith('search'):
+	if not searchString.startswith('search') and not searchString.startswith('|'):
 		searchString = 'search ' + searchString
 
 	response, content = myhttp.request(
