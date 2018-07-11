@@ -70,7 +70,8 @@ def checkConnection():
 	else:
 		print("Connection is live")
 		return
-		
+	
+	
 # ---------------------------------------- SEARCH METHODS ----------------------------------------	
  
 def getSearchStatus(sid):
@@ -125,11 +126,11 @@ def getSearchResults(sid):
 		raise Exception(errorMessage)
 	
 	
-def listSavedSearches(*searchString):
+def listSavedSearches(*searchStrings):
 	"""
 		Lists the names of saved searches (reports & alerts). Returns results in JSON form.
 		Parameters:
-			searchString (optional) = filters results. searchString is NOT case sensitive
+			searchStrings (optional) = A single search string or an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST SAVED SEARCHES]")
 	response, content = myhttp.request(
@@ -145,11 +146,13 @@ def listSavedSearches(*searchString):
 			"Alerts": []
 		}
 		
-		if searchString:
-			for entry in decodedContent["entry"]:
-				if ("%s" % searchString).lower() in entry["name"].lower() and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
+		if searchStrings:
+			searchStringsArray = ("%s" % searchStrings).lower().split(" ")
+		
+			for entry in decodedContent["entry"]:	
+				if all(x in entry["name"].lower() for x in searchStringsArray) and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
 					listOfSavedSearches["Reports"].append(entry["name"])
-				elif ("%s" % searchString).lower() in entry["name"].lower() and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
+				elif all(x in entry["name"].lower() for x in searchStringsArray) and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
 					listOfSavedSearches["Alerts"].append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
@@ -168,11 +171,11 @@ def listSavedSearches(*searchString):
 		raise Exception(errorMessage)
 
 		
-def listReportNames(*searchString):
+def listReportNames(*searchStrings):
 	"""
 		Lists the names of reports. Returns results in JSON form.
 		Parameters:
-			searchString (optional) = filters results. searchString is NOT case sensitive
+			searchStrings (optional) = A single search string or an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST REPORT NAMES]")
 	response, content = myhttp.request(
@@ -185,9 +188,11 @@ def listReportNames(*searchString):
 	if response.status == 200:
 		listOfReports = []
 		
-		if searchString:
+		if searchStrings:
+			searchStringsArray = ("%s" % searchStrings).lower().split(" ")
+			
 			for entry in decodedContent["entry"]:
-				if ("%s" % searchString).lower() in entry["name"].lower() and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
+				if all(x in entry["name"].lower() for x in searchStringsArray) and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
 					listOfReports.append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
@@ -195,7 +200,7 @@ def listReportNames(*searchString):
 					listOfReports.append(entry["name"])
 		
 		listOfReports = "%s" % listOfReports	
-		return listOfReports.replace(',',',\n')
+		return listOfReports.replace("',","',\n")
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
@@ -256,12 +261,12 @@ def runSearch(searchString):
 # namespace is the app where the dashboard is located.
 
 	
-def listDashboardNames(namespace, *searchString):
+def listDashboardNames(namespace, *searchStrings):
 	"""
 		Lists the names of dashboards in the specified app. Returns results in JSON form.
 		Parameters:
 			namespace (required) = the app name
-			searchString (optional) = filters results. searchString is NOT case sensitive
+			searchStrings (optional) = A single search string or an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST DASHBOARD NAMES]: namespace=%s" % namespace)
 	response, content = myhttp.request(
@@ -274,9 +279,11 @@ def listDashboardNames(namespace, *searchString):
 	if response.status == 200:
 		listOfDashboards = []
 		
-		if searchString:
+		if searchStrings:
+			searchStringsArray = ("%s" % searchStrings).lower().split(" ")
+		
 			for entry in decodedContent["entry"]:
-				if entry["content"]["isDashboard"] and entry["content"]["isVisible"] and ("%s" % searchString).lower() in entry["name"].lower():
+				if all(x in entry["name"].lower() for x in searchStringsArray) and entry["content"]["isDashboard"] and entry["content"]["isVisible"]:
 					listOfDashboards.append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
@@ -520,11 +527,11 @@ def deletePdfFile(filePath):
 	
 # ---------------------------------------- ALERT METHODS ----------------------------------------
 
-def listAlertNames(*searchString):
+def listAlertNames(*searchStrings):
 	"""
 		Lists the names of alerts. Returns results in JSON form.
 		Parameters:
-			searchString (optional) = filters results. searchString is NOT case sensitive
+			searchStrings (optional) = A single search string or an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST ALERT NAMES]")
 	response, content = myhttp.request(
@@ -537,9 +544,11 @@ def listAlertNames(*searchString):
 	if response.status == 200:
 		listOfAlerts = []
 		
-		if searchString:
+		if searchStrings:
+			searchStringsArray = ("%s" % searchStrings).lower().split(" ")
+		
 			for entry in decodedContent["entry"]:
-				if ("%s" % searchString).lower() in entry["name"].lower() and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
+				if all(x in entry["name"].lower() for x in searchStringsArray) and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
 					listOfAlerts.append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
@@ -621,11 +630,11 @@ def autoEnableAlert(savedSearchName, disableDuration):
 	print("[AUTO ENABLE ALERT] " + enableAlert(savedSearchName))
 	
 	
-def listDisabledAlerts(*searchString):
+def listDisabledAlerts(*searchStrings):
 	"""
 		Lists the names of disabled alerts. Returns results in JSON form.
 		Parameters:
-			searchString (optional) = filters results. searchString is NOT case sensitive
+			searchStrings (optional) = A single search string or an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST DISABLED ALERTS]")
 	response, content = myhttp.request(
@@ -638,9 +647,11 @@ def listDisabledAlerts(*searchString):
 	if response.status == 200:
 		listOfDisabledAlerts = []
 		
-		if searchString:
+		if searchStrings:
+			searchStringsArray = ("%s" % searchStrings).lower().split(" ")
+		
 			for entry in decodedContent["entry"]:
-				if ("%s" % searchString).lower() in entry["name"].lower() and entry["content"]["actions"] and entry["content"]["disabled"]:
+				if all(x in entry["name"].lower() for x in searchStringsArray) and entry["content"]["actions"] and entry["content"]["disabled"]:
 					listOfDisabledAlerts.append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
@@ -683,11 +694,11 @@ def rescheduleAlert(savedSearchName, cronSchedule):
 	
 # ---------------------------------------- OTHER METHODS ----------------------------------------	
 	
-def listAppNames(*searchString):
+def listAppNames(*searchStrings):
 	"""
 		Lists the app names for all apps in the current Splunk instance
 		Parameters:
-			searchString (optional) = filters results. searchString is NOT case sensitive
+			searchStrings (optional) = A single search string or an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST APP NAMES]")
 	response, content = myhttp.request(
@@ -700,9 +711,11 @@ def listAppNames(*searchString):
 	if response.status == 200:
 		listOfApps = []
 		
-		if searchString:
+		if searchStrings:
+			searchStringsArray = ("%s" % searchStrings).lower().split(" ")	
+			
 			for entry in decodedContent["entry"]:
-				if ("%s" % searchString).lower() in entry["name"].lower():
+				if all(x in entry["name"].lower() for x in searchStringsArray):
 					listOfApps.append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
@@ -713,9 +726,4 @@ def listAppNames(*searchString):
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
-	
-	
-	
-	
-	
-	
+
