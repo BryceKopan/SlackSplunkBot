@@ -1,3 +1,6 @@
+import inspect
+import commands.BotCommands as BotCommands
+import commands.SplunkCommands as SplunkCommands
 from wand.image import Image
 from wand.color import Color
 
@@ -96,6 +99,12 @@ def formatArray(array):
 		formattedArray += '{}\n'.format(entry)
 		
 	return formattedArray
+	
+def getCommandList():
+	botCommands = []
+	botCommands.extend(inspect.getmembers(BotCommands, inspect.isfunction))
+	botCommands.extend(inspect.getmembers(SplunkCommands, inspect.isfunction))
+	return botCommands
 	
 def convertPDFToPNG(pdfName):
 	pdfPath = 'pdf_files/{}.pdf'.format(pdfName)

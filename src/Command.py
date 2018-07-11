@@ -1,12 +1,9 @@
-import re, inspect
-import commands.BotCommands as BotCommands
-import commands.SplunkCommands as SplunkCommands
+import re
 import SimpleHipChat as HipChat
+import Util
 
 def handleCommand(command, channel):
-	botCommands = []
-	botCommands.extend(inspect.getmembers(BotCommands, inspect.isfunction))
-	botCommands.extend(inspect.getmembers(SplunkCommands, inspect.isfunction))
+	botCommands = Util.getCommandList()
 	
 	for commandString, commandFunction in botCommands:
 		commandString = commandString.replace('_', ' ')

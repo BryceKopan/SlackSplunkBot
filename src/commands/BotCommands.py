@@ -1,6 +1,7 @@
-import os, sys, time
+import os, sys, time, traceback
 import __main__
 import SimpleHipChat as HipChat
+import Util
 
 def restart(commandParameters, channel):
 	HipChat.postNotification("Restarting", channel)
@@ -10,22 +11,31 @@ def shutdown(commandParameters, channel):
 	HipChat.postNotification("Shutting Down", channel)
 	sys.exit("Shutdown command used")
 	
+def debug(commandParameters, channel):
+	HipChat.postNotification("Debugging {}".format(commandParameters[0]), channel)
+	botCommands = Util.getCommandList()
+	for commandString, commandFunction in botCommands:
+		commandString = commandString.replace('_', ' ')
+		if(commandParameters[0].startswith(commandString)):
+			del commandParameters[0]
+			HipChat.postNotification("Running Command {} with parameters {}".format(commandString, str(commandParameters)), channel)
+			try:
+				commandFunction(commandParameters, channel)
+			except Exception:
+				HipChat.postNotification(traceback.format_exc(), channel)
 #Testing Commands
 	
 def self_command_test(commandParameters, channel):
 	HipChat.postNotification("!test", channel)
-	return
 	
 def post_image(commandParameters, channel):
 	HipChat.postFile('res\\SplunkBot.png')
-	return
 	
 def post_pdf(commandParameters, channel):
 	HipChat.postFile('pdf_files\\alert_logevent_7day.pdf')
-	return
 	
 def parameter_test(commandParameters, channel):
-	return
+	HipChat.postNotification(str(commandParameters), channel)
 	
 def raise_error(commandParameters, channel):
 	raise Exception("Test Error")
