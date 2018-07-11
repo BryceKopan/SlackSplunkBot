@@ -21,8 +21,22 @@ def debug(commandParameters, channel):
 			HipChat.postNotification("Running Command {} with parameters {}".format(commandString, str(commandParameters)), channel)
 			try:
 				commandFunction(commandParameters, channel)
+				HipChat.postNotification("Command {} completed successfully".format(commandString), channel)
 			except Exception:
 				HipChat.postNotification(traceback.format_exc(), channel)
+			return
+
+def list_commands(commandParameters, channel):
+	botCommands = Util.getCommandList()
+	commandList = ''
+	searchString = ''
+	if(len(commandParameters)>0):
+		searchString = commandParameters[0]
+	for commandString, commandFunction in botCommands:
+		if(searchString in commandString):
+			commandList += commandString.replace('_', ' ') + '\n'
+	HipChat.postNotification(commandList, channel)
+	
 #Testing Commands
 	
 def self_command_test(commandParameters, channel):
