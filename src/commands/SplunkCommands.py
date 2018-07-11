@@ -35,6 +35,7 @@ def list_apps(commandParameters, channel):
 		results = Splunk.listAppNames(commandParameters[0])
 	else:
 		results = Splunk.listAppNames()
+	results = eval(results)
 	HipChat.postNotification(Util.formatArray(results), channel)
 	
 def list_dashboards(commandParameters, channel):
@@ -42,6 +43,7 @@ def list_dashboards(commandParameters, channel):
 		results = Splunk.listDashboardNames(commandParameters[0], commandParameters[1])
 	else:
 		results = Splunk.listDashboardNames(commandParameters[0])
+	results = eval(results)
 	HipChat.postNotification(Util.formatArray(results), channel)
 	
 def get_dashboard(commandParameters, channel):
@@ -56,6 +58,7 @@ def list_alerts(commandParameters, channel):
 		results = Splunk.listAlertNames(commandParameters[0])
 	else:
 		results = Splunk.listAlertNames()
+	results = eval(results)
 	HipChat.postNotification(Util.formatArray(results), channel)
 		
 def list_disabled_alerts(commandParameters, channel):
@@ -63,6 +66,7 @@ def list_disabled_alerts(commandParameters, channel):
 		results = Splunk.listDisabledAlerts(commandParameters[0])
 	else:
 		results = Splunk.listDisabledAlerts()
+	results = eval(results)
 	HipChat.postNotification(Util.formatArray(results), channel)
 		
 def enable_alert(commandParameters, channel):

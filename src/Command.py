@@ -3,17 +3,14 @@ import SimpleHipChat as HipChat
 import Util
 
 def handleCommand(command, channel):
-	botCommands = Util.getCommandList()
+	commandString, commandFunction = Util.getCommandFunction(command)
+	if(commandString and commandFunction):
+		commandVariables = command.split(commandString, 1)[1].lstrip()
+		commandParameters = parseCommandVariables(commandVariables)
+		commandFunction(commandParameters, channel)
+		return
 	
-	for commandString, commandFunction in botCommands:
-		commandString = commandString.replace('_', ' ')
-		if(command.startswith(commandString)):
-			commandVariables = command.split(commandString, 1)[1].lstrip()
-			commandParameters = parseCommandVariables(commandVariables)
-			commandFunction(commandParameters, channel)
-			return
-	
-	HipChat.postNotification("Not sure what you mean. Try *{}*.".format('help'), channel)
+	HipChat.postNotification("Not sure what you mean. Try {}.".format('help'), channel)
 		
 def parseBotCommands(events, trigger):
 	"""

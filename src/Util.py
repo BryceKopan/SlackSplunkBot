@@ -100,6 +100,16 @@ def formatArray(array):
 		
 	return formattedArray
 	
+def getCommandFunction(command):
+	botCommands = getCommandList()
+	
+	for commandString, commandFunction in botCommands:
+		commandString = commandString.replace('_', ' ')
+		if(command.startswith(commandString)):
+			return commandString, commandFunction
+	
+	return None, None
+	
 def getCommandList():
 	botCommands = []
 	botCommands.extend(inspect.getmembers(BotCommands, inspect.isfunction))

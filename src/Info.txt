@@ -7,8 +7,6 @@ dynamic monitoring rate starting at once every 3 seconds then going up as calls 
 Global and Personal Aliasing
 index based parameter passing
 documentation
-help revamp
-	list commands command
-	details command
-	error command
+details command
 output after receiving command
+actual room handling
