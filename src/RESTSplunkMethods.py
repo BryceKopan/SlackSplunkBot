@@ -130,7 +130,7 @@ def listSavedSearches(*searchStrings):
 	"""
 		Lists the names of saved searches (reports & alerts). Returns results in JSON form.
 		Parameters:
-			searchStrings (optional) = A single search string or an array of search strings to filter results. Search strings are NOT case sensitive
+			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST SAVED SEARCHES]")
 	response, content = myhttp.request(
@@ -147,12 +147,12 @@ def listSavedSearches(*searchStrings):
 		}
 		
 		if searchStrings:
-			searchStringsArray = ("%s" % searchStrings).lower().split(" ")
+			searchStrings = [string.lower() for string in searchStrings[0]]
 		
 			for entry in decodedContent["entry"]:	
-				if all(x in entry["name"].lower() for x in searchStringsArray) and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
+				if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
 					listOfSavedSearches["Reports"].append(entry["name"])
-				elif all(x in entry["name"].lower() for x in searchStringsArray) and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
+				elif all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
 					listOfSavedSearches["Alerts"].append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
@@ -175,7 +175,7 @@ def listReportNames(*searchStrings):
 	"""
 		Lists the names of reports. Returns results in JSON form.
 		Parameters:
-			searchStrings (optional) = A single search string or an array of search strings to filter results. Search strings are NOT case sensitive
+			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST REPORT NAMES]")
 	response, content = myhttp.request(
@@ -189,10 +189,10 @@ def listReportNames(*searchStrings):
 		listOfReports = []
 		
 		if searchStrings:
-			searchStringsArray = ("%s" % searchStrings).lower().split(" ")
+			searchStrings = [string.lower() for string in searchStrings[0]]
 			
 			for entry in decodedContent["entry"]:
-				if all(x in entry["name"].lower() for x in searchStringsArray) and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
+				if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
 					listOfReports.append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
@@ -266,7 +266,7 @@ def listDashboardNames(namespace, *searchStrings):
 		Lists the names of dashboards in the specified app. Returns results in JSON form.
 		Parameters:
 			namespace (required) = the app name
-			searchStrings (optional) = A single search string or an array of search strings to filter results. Search strings are NOT case sensitive
+			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST DASHBOARD NAMES]: namespace=%s" % namespace)
 	response, content = myhttp.request(
@@ -280,10 +280,10 @@ def listDashboardNames(namespace, *searchStrings):
 		listOfDashboards = []
 		
 		if searchStrings:
-			searchStringsArray = ("%s" % searchStrings).lower().split(" ")
+			searchStrings = [string.lower() for string in searchStrings[0]]
 		
 			for entry in decodedContent["entry"]:
-				if all(x in entry["name"].lower() for x in searchStringsArray) and entry["content"]["isDashboard"] and entry["content"]["isVisible"]:
+				if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["isDashboard"] and entry["content"]["isVisible"]:
 					listOfDashboards.append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
@@ -531,7 +531,7 @@ def listAlertNames(*searchStrings):
 	"""
 		Lists the names of alerts. Returns results in JSON form.
 		Parameters:
-			searchStrings (optional) = A single search string or an array of search strings to filter results. Search strings are NOT case sensitive
+			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST ALERT NAMES]")
 	response, content = myhttp.request(
@@ -545,10 +545,10 @@ def listAlertNames(*searchStrings):
 		listOfAlerts = []
 		
 		if searchStrings:
-			searchStringsArray = ("%s" % searchStrings).lower().split(" ")
+			searchStrings = [string.lower() for string in searchStrings[0]]
 		
 			for entry in decodedContent["entry"]:
-				if all(x in entry["name"].lower() for x in searchStringsArray) and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
+				if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
 					listOfAlerts.append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
@@ -634,7 +634,7 @@ def listDisabledAlerts(*searchStrings):
 	"""
 		Lists the names of disabled alerts. Returns results in JSON form.
 		Parameters:
-			searchStrings (optional) = A single search string or an array of search strings to filter results. Search strings are NOT case sensitive
+			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST DISABLED ALERTS]")
 	response, content = myhttp.request(
@@ -648,10 +648,10 @@ def listDisabledAlerts(*searchStrings):
 		listOfDisabledAlerts = []
 		
 		if searchStrings:
-			searchStringsArray = ("%s" % searchStrings).lower().split(" ")
+			searchStrings = [string.lower() for string in searchStrings[0]]
 		
 			for entry in decodedContent["entry"]:
-				if all(x in entry["name"].lower() for x in searchStringsArray) and entry["content"]["actions"] and entry["content"]["disabled"]:
+				if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["actions"] and entry["content"]["disabled"]:
 					listOfDisabledAlerts.append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
@@ -698,7 +698,7 @@ def listAppNames(*searchStrings):
 	"""
 		Lists the app names for all apps in the current Splunk instance
 		Parameters:
-			searchStrings (optional) = A single search string or an array of search strings to filter results. Search strings are NOT case sensitive
+			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST APP NAMES]")
 	response, content = myhttp.request(
@@ -712,10 +712,10 @@ def listAppNames(*searchStrings):
 		listOfApps = []
 		
 		if searchStrings:
-			searchStringsArray = ("%s" % searchStrings).lower().split(" ")	
+			searchStrings = [string.lower() for string in searchStrings[0]]	
 			
 			for entry in decodedContent["entry"]:
-				if all(x in entry["name"].lower() for x in searchStringsArray):
+				if all(x in entry["name"].lower() for x in searchStrings):
 					listOfApps.append(entry["name"])
 		else:
 			for entry in decodedContent["entry"]:
