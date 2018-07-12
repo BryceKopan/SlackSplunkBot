@@ -340,6 +340,7 @@ def listDashboardInputs(namespace, dashboard):
 	XMLDashboard = getDashboardXML(namespace, dashboard)
 	XMLDashboard=XMLDashboard.replace('![CDATA[<', '') # remove this xml tag so the xml can be parsed below
 	XMLDashboard=XMLDashboard.replace(']]>', '')
+	XMLDashboard=XMLDashboard.replace("<?xml version='1.0' encoding='utf-8'?>", '')
 
 	tree = ET.fromstring(XMLDashboard)
 	entry = tree.find('{http://www.w3.org/2005/Atom}entry')
@@ -389,6 +390,7 @@ def formatDashboardInput(namespace, dashboard, userInput):
 	XMLDashboard = getDashboardXML(namespace, dashboard)
 	XMLDashboard=XMLDashboard.replace('![CDATA[<', '') # remove this xml tag so the xml can be parsed below
 	XMLDashboard=XMLDashboard.replace(']]>', '')
+	XMLDashboard=XMLDashboard.replace("<?xml version='1.0' encoding='utf-8'?>", '')
 	
 	tree = ET.fromstring(XMLDashboard)
 	entry = tree.find('{http://www.w3.org/2005/Atom}entry')
