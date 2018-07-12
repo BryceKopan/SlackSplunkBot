@@ -126,17 +126,17 @@ def getSearchResults(sid):
 		raise Exception(errorMessage)
 	
 	
-def listSavedSearches(namespace=None, searchStrings=[]):
+def listSavedSearches(namespace, searchStrings=[]):
 	"""
 		Lists the names of saved searches (reports & alerts). Returns results in JSON form.
 		Parameters:
-			namespace (optional) = the name of the app to search. If not set, only global alerts are visible
+			namespace (required) = the name of the app to search. Set to "global" to view global resources
 			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST SAVED SEARCHES]")
-	url = BASE_URL + "/services/saved/searches?output_mode=json&count=0"
-	if namespace:
-		url = BASE_URL + "/servicesNS/%s/%s/saved/searches?output_mode=json&count=0" % (USER, namespace)
+	url = BASE_URL + "/servicesNS/%s/%s/saved/searches?output_mode=json&count=0" % (USER, namespace)
+	if namespace == "global":
+		url = BASE_URL + "/services/saved/searches?output_mode=json&count=0"
 
 	response, content = myhttp.request(
 		url,
@@ -159,7 +159,7 @@ def listSavedSearches(namespace=None, searchStrings=[]):
 				if entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
 					savedSearchType = "Alerts"
 					
-				if namespace:
+				if namespace != "global":
 					if entry["acl"]["sharing"] != "global":
 						listOfSavedSearches[savedSearchType].append(entry["name"])
 				else:
@@ -175,18 +175,18 @@ def listSavedSearches(namespace=None, searchStrings=[]):
 		raise Exception(errorMessage)
 
 		
-def listReportNames(namespace=None, searchStrings=[]):
+def listReportNames(namespace, searchStrings=[]):
 	"""
 		Lists the names of reports. Returns results in JSON form.
 		Parameters:
-			namespace (optional) = the name of the app to search. If not set, only global alerts are visible
+			namespace (required) = the name of the app to search. Set to "global" to view global resources
 			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST REPORT NAMES]")
-	url = BASE_URL + "/services/saved/searches?output_mode=json&count=0"
-	if namespace:
-		url = BASE_URL + "/servicesNS/%s/%s/saved/searches?output_mode=json&count=0" % (USER, namespace)
-
+	url = BASE_URL + "/servicesNS/%s/%s/saved/searches?output_mode=json&count=0" % (USER, namespace)
+	if namespace == "global":
+		url = BASE_URL + "/services/saved/searches?output_mode=json&count=0"
+		
 	response, content = myhttp.request(
 		url,
 		'GET', 
@@ -201,7 +201,7 @@ def listReportNames(namespace=None, searchStrings=[]):
 			
 		for entry in decodedContent["entry"]:
 			if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
-				if namespace:
+				if namespace != "global":
 					if entry["acl"]["sharing"] != "global":
 						listOfReports.append(entry["name"])
 				else:
@@ -214,21 +214,21 @@ def listReportNames(namespace=None, searchStrings=[]):
 		raise Exception(errorMessage)
 		
 	
-def runSavedSearch(savedSearchName, namespace=None, triggerActions=False):
+def runSavedSearch(namespace, savedSearchName, triggerActions=False):
 	"""
 		Runs a saved search. Returns results in JSON form.
 		Run 'listSavedSearches' to get the correct name.
 		Parameters:
+			namespace (required) = the name of the app where the saved search is located. Set to "global" for global resources
 			savedSearchName (required) = the name of the saved Splunk search
-			namespace (optional) = the name of the app where the saved search is located. If not set, only global saved searches are visible
 			triggerActions (optional) = specify whether to trigger alert actions (Boolean)
 	"""
 	print("[RUN SAVED SEARCH]: %s" % savedSearchName)
 	# reformat saved search name for URL
 	savedSearchName = savedSearchName.replace(' ', '%20')
-	url = BASE_URL + "/services/saved/searches/%s/dispatch?output_mode=json&trigger_actions=%s" % (savedSearchName, triggerActions)
-	if namespace:
-		url = BASE_URL + "/servicesNS/%s/%s/saved/searches/%s/dispatch?output_mode=json&trigger_actions=%s" % (USER, namespace, savedSearchName, triggerActions)
+	url = BASE_URL + "/servicesNS/%s/%s/saved/searches/%s/dispatch?output_mode=json&trigger_actions=%s" % (USER, namespace, savedSearchName, triggerActions)
+	if namespace == "global":
+		url = BASE_URL + "/services/saved/searches/%s/dispatch?output_mode=json&trigger_actions=%s" % (savedSearchName, triggerActions)
 
 	response, content = myhttp.request(
 		url, 
@@ -537,18 +537,18 @@ def deletePdfFile(filePath):
 	
 # ---------------------------------------- ALERT METHODS ----------------------------------------
 
-def listAlertNames(namespace=None, searchStrings=[]):
+def listAlertNames(namespace, searchStrings=[]):
 	"""
 		Lists the names of alerts. Returns results in JSON form.
 		Parameters:
-			namespace (optional) = the name of the app to search. If not set, only global alerts are visible
+			namespace (required) = the name of the app to search. Set to "global" to view global resources
 			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
-	print("[LIST ALERT NAMES]")
-	url = BASE_URL + "/services/saved/searches?output_mode=json&count=0"
-	if namespace:
-		url = BASE_URL + "/servicesNS/%s/%s/saved/searches?output_mode=json&count=0" % (USER, namespace)
-
+	print("[LIST ALERT NAMES] namespace=%s" % namespace)
+	url = BASE_URL + "/servicesNS/%s/%s/saved/searches?output_mode=json&count=0" % (USER, namespace)
+	if namespace == "global":
+		url = BASE_URL + "/services/saved/searches?output_mode=json&count=0"
+		
 	response, content = myhttp.request(
 		url,
 		'GET', 
@@ -563,7 +563,7 @@ def listAlertNames(namespace=None, searchStrings=[]):
 		
 		for entry in decodedContent["entry"]:
 			if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
-				if namespace:
+				if namespace != "global":
 					if entry["acl"]["sharing"] != "global":
 						listOfAlerts.append(entry["name"])
 				else:
@@ -577,21 +577,21 @@ def listAlertNames(namespace=None, searchStrings=[]):
 		raise Exception(errorMessage)
 	
 	
-def disableAlert(alertName, namespace=None, disableDuration=0):
+def disableAlert(namespace, alertName, disableDuration=0):
 	"""
 		Disables an alert.
 		Parameters:
+			namespace (required) = the name of the app where the alert is located. Set to "global" for global resources
 			alertName (required) = the name of the alert
-			namespace (optional) = the name of the app where the alert is located. If not set, only global alerts are visible
 			disableDuration (optional) = How long to disable the alert (in minutes). If not set, the alert must be enabled manually
 	"""
-	print("[DISABLE ALERT] alert=%s" % alertName)
+	print("[DISABLE ALERT] namespace=%s, alert=%s" % (namespace, alertName))
 	# reformat saved search name for URL
 	alertName = alertName.replace(' ', '%20')
-	url = BASE_URL + ("/services/saved/searches/%s?output_mode=json" % alertName)
-	if namespace:
-		url = BASE_URL + ("/servicesNS/%s/%s/saved/searches/%s?output_mode=json" % (USER, namespace, alertName))
-	
+	url = BASE_URL + ("/servicesNS/%s/%s/saved/searches/%s?output_mode=json" % (USER, namespace, alertName))
+	if namespace == "global":
+		url = BASE_URL + ("/services/saved/searches/%s?output_mode=json" % alertName)
+		
 	response, content = myhttp.request(
 		url,
 		'POST', 
@@ -613,20 +613,20 @@ def disableAlert(alertName, namespace=None, disableDuration=0):
 		raise Exception(errorMessage)		
 				
 		
-def enableAlert(alertName, namespace=None):
+def enableAlert(namespace, alertName):
 	"""
 		Enables an alert.
 		Parameters:
+			namespace (required) = the name of the app where the alert is located. Set to "global" for global resources
 			alertName (required) = the name of the alert
-			namespace (optional) the name of the app where the alert is located. If not set, only global alerts are visible
 	"""
-	print("[ENABLE ALERT] alert=%s" % alertName)
+	print("[ENABLE ALERT] namespace=%s, alert=%s" % (namespace, alertName))
 	# reformat saved search name for URL
 	alertName = alertName.replace(' ', '%20')
-	url = BASE_URL + ("/services/saved/searches/%s?output_mode=json" % alertName)
-	if namespace:
-		url = BASE_URL + ("/servicesNS/%s/%s/saved/searches/%s?output_mode=json" % (USER, namespace, alertName))
-	
+	url = BASE_URL + ("/servicesNS/%s/%s/saved/searches/%s?output_mode=json" % (USER, namespace, alertName))
+	if namespace == "global":
+		url = BASE_URL + ("/services/saved/searches/%s?output_mode=json" % alertName)
+		
 	response, content = myhttp.request(
 		url, 
 		'POST', 
@@ -646,25 +646,25 @@ def autoEnableAlert(namespace, alertName, disableDuration):
 	"""
 		Enables an alert after the specified time.
 		Parameters:
-			alertName (required) = the name of the app where the alert is located
+			namespace (required) = the name of the app where the alert is located. Set to "global" for global resources
 			alertName (required) = the name of the alert
 			disableDuration (required) = How long to disable the alert (in minutes)
 	"""
 	sleep(disableDuration * 60) # transform to minutes
-	print("[AUTO ENABLE ALERT] " + enableAlert(alertName, namespace))
+	print("[AUTO ENABLE ALERT] " + enableAlert(namespace, alertName))
 	
 	
-def listDisabledAlerts(namespace=None, searchStrings=[]):
+def listDisabledAlerts(namespace, searchStrings=[]):
 	"""
 		Lists the names of disabled alerts. Returns results in JSON form.
 		Parameters:
-			namespace (optional) = the name of the app to search. If not set, only global alerts are visible
+			namespace (required) = the name of the app where the alert is located. Set to "global" for global resources
 			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
-	print("[LIST DISABLED ALERTS]")
-	url = BASE_URL + "/services/saved/searches?output_mode=json&count=0"
-	if namespace:
-		url = BASE_URL + ("/servicesNS/%s/%s/saved/searches?output_mode=json&count=0" % (USER, namespace))
+	print("[LIST DISABLED ALERTS] namespace=%s" % namespace)
+	url = BASE_URL + ("/servicesNS/%s/%s/saved/searches?output_mode=json&count=0" % (USER, namespace))
+	if namespace == "global":
+		url = BASE_URL + "/services/saved/searches?output_mode=json&count=0"
 		
 	response, content = myhttp.request(
 		url, 
@@ -679,7 +679,7 @@ def listDisabledAlerts(namespace=None, searchStrings=[]):
 		
 		for entry in decodedContent["entry"]:
 			if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["actions"] and entry["content"]["disabled"]:
-				if namespace:
+				if namespace != "global":
 					if entry["acl"]["sharing"] != "global":
 						listOfDisabledAlerts.append(entry["name"])
 				else:
@@ -692,22 +692,21 @@ def listDisabledAlerts(namespace=None, searchStrings=[]):
 		raise Exception(errorMessage)
 	
 
-def rescheduleAlert(alertName, cronSchedule, namespace=None):
+def rescheduleAlert(namespace, alertName, cronSchedule):
 	"""
 		Reschedules an alert by passing in a cron schedule.
 		Parameters:
+			namespace (required) = the name of the app where the alert is located. Set to "global" for global resources
 			alertName (required) = the name of the alert
 			cronSchedule (required) = a cron schedule (i.e. to run at 30 minutes past each hour '30 * * * *')
-			namespace (optional) = the name of the app where the alert is located. If not set, only global alerts are visible
 	"""
-	print("[RESCHEDULE ALERT] alert=%s, schedule=%s" % (alertName, cronSchedule))
+	print("[RESCHEDULE ALERT] namespace=%s, alert=%s, schedule=%s" % (namespace, alertName, cronSchedule))
 	# reformat alert name for URL
 	alertName = alertName.replace(' ', '%20')
-	url = BASE_URL + ("/services/saved/searches/%s?output_mode=json" % alertName)
-	if namespace:
-		url = BASE_URL + ("/servicesNS/%s/%s/saved/searches/%s?output_mode=json" % (USER, namespace, alertName))
-	
-	
+	url = BASE_URL + ("/servicesNS/%s/%s/saved/searches/%s?output_mode=json" % (USER, namespace, alertName))
+	if namespace == "global":
+		url = BASE_URL + ("/services/saved/searches/%s?output_mode=json" % alertName)
+		
 	response, content = myhttp.request(
 		url, 
 		'POST', 
