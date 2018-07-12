@@ -45,26 +45,26 @@ def help(commandParameters, channel):
 							"Commands to SplunkBot must start with an exclamation mark.\n "
 							"Certain commands use parameters. They are placed after the command name and separated by commas\n "
 							"Ex: 'commandName parameter1, parameter2, parameter3'\n "
-							"Many commands have multiple ways in which they can be called, be sure to use 'help commandName' for specific information on a command.\n "
+							"Many commands have multiple ways in which they can be called, be sure to use 'help <commandName>' for specific information on a command.\n "
 							"All list commands can be passed a search string as the last parameter. The list command will only return things containing that string.\n ")
 		elif(commandParameters[0] == 'Searches'):
 			helpString = ("SplunkBot's primary purpose is to allow Splunk searches to be run from within the chat room.\n "
 							"SplunkBot can run a search written completely in the chat.\n "
 							"Ex: 'run search index=* Error'\n "
 							"SplunkBot can run saved searches from the Splunk environment it is connect to.\n "
-							"Ex: 'run saved search savedSearchName'\n "
+							"Ex: 'run saved search <savedSearchName>'\n "
 							"SplunkBot can list saved searches with the command 'list saved searches'.\n")
 		elif(commandParameters[0] == 'Dashboards'):
 			helpString = ("SplunkBot can return graphical representations of data from dashboards.\n "
-							"Ex: 'get dashboard appName, dashboardName'\n "
+							"Ex: 'get dashboard <appName>, <dashboardName>'\n "
 							"This method requires the name of the app the dashboard belongs to and the name of the dashboard.\n "
-							"These can be acquired with 'list apps' and 'list dashboards appName' respectively.\n")
+							"These can be acquired with 'list apps' and 'list dashboards <appName>' respectively.\n")
 		elif(commandParameters[0] == 'Alerts'):
 			helpString = ("SplunkBot can interact with Splunk alerts as well.\n "
 							"Alerts can be listed with 'list alerts'.\n "
-							"Alerts can be enabled with 'enable alert alertName'.\n "
-							"Alerts can be disabled with 'disable alert alertName'.\n "
-							"Alerts can be enabled for X minutes with 'disable alert alertName, X'.\n ")
+							"Alerts can be enabled with 'enable alert <alertName>'.\n "
+							"Alerts can be disabled with 'disable alert <alertName>'.\n "
+							"Alerts can be enabled for X minutes with 'disable alert <alertName>, <X>'.\n ")
 		elif(commandParameters[0] == 'Splunk Enviroment'):
 			helpString = ("SplunkBot can currently be connected to ITest or Local.\n "
 							"The default environment is Local.\n "
@@ -72,9 +72,9 @@ def help(commandParameters, channel):
 							"'connect to ITest' and 'connect to Local' can be used to change environment.\n ")
 	else:
 		helpString = ("'list commands' can be used to list all possible commands.\n "
-						"'help commandName' can be used to receive detailed information on a command.\n "
+						"'help <commandName>' can be used to receive detailed information on a command.\n "
 						"\n "
-						"'help subjectName' can be used to gain more information on any of the following subjects.\n "
+						"'help <subjectName>' can be used to gain more information on any of the following subjects.\n "
 						"Basics \n Searches\n Dashboards\n Alerts\n Splunk Environment\n")
 	HipChat.postNotification(helpString, channel)
 #Testing Commands

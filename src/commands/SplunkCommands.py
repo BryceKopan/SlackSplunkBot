@@ -6,6 +6,7 @@ import SimpleHipChat as HipChat
 enviroment = "LOCAL"
 
 def list_saved_searches(commandParameters, channel):
+	"""  """
 	if(len(commandParameters) > 0):
 		results = Splunk.listSavedSearches(commandParameters[0])
 	else:
@@ -47,6 +48,7 @@ def list_dashboards(commandParameters, channel):
 	HipChat.postNotification(Util.formatArray(results), channel)
 	
 def get_dashboard(commandParameters, channel):
+	HipChat.postNotification("Getting dashboard {} from {}".format(commandParameters[1], commandParameters[0]), channel)
 	Splunk.getDashboardPdf(commandParameters[0], commandParameters[1])
 	pdfName = commandParameters[0] + "_" + commandParameters[1]
 	pngPaths = Util.convertPDFToPNG(pdfName)

@@ -7,9 +7,9 @@ import Util
 
 HIPCHAT_BOT_TOKEN = os.environ.get('HIPCHAT_BOT_TOKEN')
 HIPCHAT_HOST = 'hipchat.ercot.com'
-SPLUNK_BASE_URL = "https://localhost:8089"
-USERNAME = os.environ.get('SPLUNK_LOCAL_USERNAME')
-PASSWORD = os.environ.get('SPLUNK_LOCAL_PASSWORD')
+SPLUNK_BASE_URL = "https://splunk-itest.ercot.com:8089"
+USERNAME = os.environ.get('SPLUNK_USERNAME')
+PASSWORD = os.environ.get('SPLUNK_PASSWORD')
 
 #constants
 RTM_READ_DELAY = 5 #second delay between reading from RTM

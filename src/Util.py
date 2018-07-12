@@ -125,14 +125,16 @@ def convertPDFToPNG(pdfName):
 		for index, singleImg in enumerate(images):
 			pngPath = 'pdf_files/{}{}.png'.format(pdfName, str(index))
 			img = Image(singleImg)
-			img = removeSplunkBorderFromPNG(img)
+			img.background_color = Color('white')
+			img.alpha_channel = 'remove'
+			# img = removeSplunkBorderFromPNG(img)
 			img.save(filename=pngPath)
 			pngPaths.append(pngPath)
 	return pngPaths
 
 def removeSplunkBorderFromPNG(img):
-	img.background_color=Color('snow4')
-	img.alpha_channel='remove'
+	img.background_color = Color('snow4')
+	img.alpha_channel = 'remove'
 	img.trim(fuzz=50)
 	img.trim(fuzz=50)
 	img.trim()
