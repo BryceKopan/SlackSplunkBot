@@ -126,15 +126,20 @@ def getSearchResults(sid):
 		raise Exception(errorMessage)
 	
 	
-def listSavedSearches(*searchStrings):
+def listSavedSearches(namespace=None, searchStrings=[]):
 	"""
 		Lists the names of saved searches (reports & alerts). Returns results in JSON form.
 		Parameters:
+			namespace (optional) = the name of the app to search. If not set, only global alerts are visible
 			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST SAVED SEARCHES]")
+	url = BASE_URL + "/services/saved/searches?output_mode=json&count=0"
+	if namespace:
+		url = BASE_URL + "/servicesNS/%s/%s/saved/searches?output_mode=json&count=0" % (USER, namespace)
+
 	response, content = myhttp.request(
-		BASE_URL + "/services/saved/searches?output_mode=json&count=0", 
+		url,
 		'GET', 
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 
@@ -146,20 +151,19 @@ def listSavedSearches(*searchStrings):
 			"Alerts": []
 		}
 		
-		if searchStrings:
-			searchStrings = [string.lower() for string in searchStrings[0]]
-		
-			for entry in decodedContent["entry"]:	
-				if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
-					listOfSavedSearches["Reports"].append(entry["name"])
-				elif all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
-					listOfSavedSearches["Alerts"].append(entry["name"])
-		else:
-			for entry in decodedContent["entry"]:
-				if entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
-					listOfSavedSearches["Reports"].append(entry["name"])
-				elif entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
-					listOfSavedSearches["Alerts"].append(entry["name"])
+		searchStrings = [string.lower() for string in searchStrings]
+	
+		for entry in decodedContent["entry"]:	
+			if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["is_visible"]: 
+				savedSearchType = "Reports"
+				if entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
+					savedSearchType = "Alerts"
+					
+				if namespace:
+					if entry["acl"]["sharing"] != "global":
+						listOfSavedSearches[savedSearchType].append(entry["name"])
+				else:
+					listOfSavedSearches[savedSearchType].append(entry["name"])
 		
 		listOfSavedSearches = "%s" % listOfSavedSearches
 		listOfSavedSearches = listOfSavedSearches.replace("',","',\n\t")
@@ -171,15 +175,20 @@ def listSavedSearches(*searchStrings):
 		raise Exception(errorMessage)
 
 		
-def listReportNames(*searchStrings):
+def listReportNames(namespace=None, searchStrings=[]):
 	"""
 		Lists the names of reports. Returns results in JSON form.
 		Parameters:
+			namespace (optional) = the name of the app to search. If not set, only global alerts are visible
 			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST REPORT NAMES]")
+	url = BASE_URL + "/services/saved/searches?output_mode=json&count=0"
+	if namespace:
+		url = BASE_URL + "/servicesNS/%s/%s/saved/searches?output_mode=json&count=0" % (USER, namespace)
+
 	response, content = myhttp.request(
-		BASE_URL + "/services/saved/searches?output_mode=json&count=0", 
+		url,
 		'GET', 
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 
@@ -188,15 +197,14 @@ def listReportNames(*searchStrings):
 	if response.status == 200:
 		listOfReports = []
 		
-		if searchStrings:
-			searchStrings = [string.lower() for string in searchStrings[0]]
+		searchStrings = [string.lower() for string in searchStrings]
 			
-			for entry in decodedContent["entry"]:
-				if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
-					listOfReports.append(entry["name"])
-		else:
-			for entry in decodedContent["entry"]:
-				if entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
+		for entry in decodedContent["entry"]:
+			if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["is_visible"] and entry["content"]["actions"] == "" and entry["content"]["alert_type"] == "always":
+				if namespace:
+					if entry["acl"]["sharing"] != "global":
+						listOfReports.append(entry["name"])
+				else:
 					listOfReports.append(entry["name"])
 		
 		listOfReports = "%s" % listOfReports	
@@ -261,7 +269,7 @@ def runSearch(searchString):
 # namespace is the app where the dashboard is located.
 
 	
-def listDashboardNames(namespace, *searchStrings):
+def listDashboardNames(namespace, searchStrings=[]):
 	"""
 		Lists the names of dashboards in the specified app. Returns results in JSON form.
 		Parameters:
@@ -279,16 +287,11 @@ def listDashboardNames(namespace, *searchStrings):
 	if response.status == 200:
 		listOfDashboards = []
 		
-		if searchStrings:
-			searchStrings = [string.lower() for string in searchStrings[0]]
+		searchStrings = [string.lower() for string in searchStrings]
 		
-			for entry in decodedContent["entry"]:
-				if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["isDashboard"] and entry["content"]["isVisible"]:
-					listOfDashboards.append(entry["name"])
-		else:
-			for entry in decodedContent["entry"]:
-				if entry["content"]["isDashboard"] and entry["content"]["isVisible"]:
-					listOfDashboards.append(entry["name"])
+		for entry in decodedContent["entry"]:
+			if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["isDashboard"] and entry["content"]["isVisible"]:
+				listOfDashboards.append(entry["name"])
 		
 		listOfDashboards = "%s" % listOfDashboards
 		return listOfDashboards.replace(',',',\n')
@@ -453,27 +456,28 @@ def getDashboardPdf(namespace, dashboard, *userInput):
 		pdfFile.close()
 		return pdfFileName
 	else:
-		raise Exception("Could not find dashboard with name '%s'" % dashboard)
+		raise Exception("An error occurred while trying to get PDF of dashboard '%s'" % dashboard)
 
 	
-def getReportPdf(report):
+def getReportPdf(namespace, report):
 	"""
 		Gets a PDF rendering of a report/saved search and saves it to '/pdf_files/<report>.pdf'.
 		Uses the original time range of the report
 		Parameters:
+			namespace (required) = the name of the app where the report is located
 			report (required) = the name of the report
 	"""
-	print("[GET REPORT PDF] report=%s" % report)
-	pdfFileName = ('%s\pdf_files\%s.pdf' % (PATH, report))
+	print("[GET REPORT PDF] namespace = %s, report=%s" % (namespace, report))
+	pdfFileName = ('%s\pdf_files\%s_%s.pdf' % (PATH, namespace, report))
 	report = report.replace(' ','%20')
 
-	url = BASE_URL + ("/services/pdfgen/render?input-report=%s&paper-size=a4-landscape&include-splunk-logo=False" % report)
+	url = BASE_URL + ("/services/pdfgen/render?namespace=%s&input-report=%s&paper-size=a4-landscape&include-splunk-logo=False" % (namespace, report))
 
 	response, content = myhttp.request(
 		url,
 		'POST',
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
-		
+	
 	if response.status == 200:
 		pdfFile = open(pdfFileName,'wb')
 		pdfFile.write(content)
@@ -481,7 +485,7 @@ def getReportPdf(report):
 		return pdfFileName
 	else:
 		if '404' in content.decode('utf-8'):
-			raise Exception("Could not find report with name '%s'" % report.replace('%20',' '))
+			raise Exception("Could not find report with name '%s' in the '%s' app" % (report.replace('%20',' '), namespace))
 		else:
 			raise Exception("An error occurred while generating PDF for report '%s'" % content.decode('utf-8'))
 
@@ -527,15 +531,20 @@ def deletePdfFile(filePath):
 	
 # ---------------------------------------- ALERT METHODS ----------------------------------------
 
-def listAlertNames(*searchStrings):
+def listAlertNames(namespace=None, searchStrings=[]):
 	"""
 		Lists the names of alerts. Returns results in JSON form.
 		Parameters:
+			namespace (optional) = the name of the app to search. If not set, only global alerts are visible
 			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST ALERT NAMES]")
+	url = BASE_URL + "/services/saved/searches?output_mode=json&count=0"
+	if namespace:
+		url = BASE_URL + "/servicesNS/%s/%s/saved/searches?output_mode=json&count=0" % (USER, namespace)
+
 	response, content = myhttp.request(
-		BASE_URL + "/services/saved/searches?output_mode=json&count=0", 
+		url,
 		'GET', 
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 
@@ -544,16 +553,16 @@ def listAlertNames(*searchStrings):
 	if response.status == 200:
 		listOfAlerts = []
 		
-		if searchStrings:
-			searchStrings = [string.lower() for string in searchStrings[0]]
+		searchStrings = [string.lower() for string in searchStrings]
 		
-			for entry in decodedContent["entry"]:
-				if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
+		for entry in decodedContent["entry"]:
+			if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
+				if namespace:
+					if entry["acl"]["sharing"] != "global":
+						listOfAlerts.append(entry["name"])
+				else:
 					listOfAlerts.append(entry["name"])
-		else:
-			for entry in decodedContent["entry"]:
-				if entry["content"]["is_visible"] and entry["content"]["actions"] != "" and entry["content"]["alert_type"] != "always":
-					listOfAlerts.append(entry["name"])
+		
 		
 		listOfAlerts = "%s" % listOfAlerts	
 		return listOfAlerts.replace(',',',\n')
@@ -562,50 +571,58 @@ def listAlertNames(*searchStrings):
 		raise Exception(errorMessage)
 	
 	
-def disableAlert(savedSearchName, disableDuration=0):
+def disableAlert(alertName, namespace=None, disableDuration=0):
 	"""
 		Disables an alert.
 		Parameters:
-			savedSearchName (required) = the name of the saved search
+			alertName (required) = the name of the alert
+			namespace (optional) = the name of the app where the alert is located. If not set, only global alerts are visible
 			disableDuration (optional) = How long to disable the alert (in minutes). If not set, the alert must be enabled manually
 	"""
-	print("[DISABLE ALERT] alert=%s" % savedSearchName)
+	print("[DISABLE ALERT] alert=%s" % alertName)
 	# reformat saved search name for URL
-	savedSearchName = savedSearchName.replace(' ', '%20')
+	alertName = alertName.replace(' ', '%20')
+	url = BASE_URL + ("/services/saved/searches/%s?output_mode=json" % alertName)
+	if namespace:
+		url = BASE_URL + ("/servicesNS/%s/%s/saved/searches/%s?output_mode=json" % (USER, namespace, alertName))
 	
 	response, content = myhttp.request(
-		BASE_URL + ("/services/saved/searches/%s?output_mode=json" % savedSearchName), 
+		url,
 		'POST', 
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)},
 		body=urllib.parse.urlencode({'disabled':True}))
 
 	decodedContent = json.loads(content.decode('utf-8'))
-	savedSearchName = savedSearchName.replace('%20', ' ')
+	alertName = alertName.replace('%20', ' ')
 	
 	if response.status == 200:
 		if disableDuration:
-			thread = threading.Thread(target=autoEnableAlert, args=(savedSearchName, disableDuration))
+			thread = threading.Thread(target=autoEnableAlert, args=(namespace, alertName, disableDuration))
 			thread.start()
-			return("Successfully disabled '%s'. It will automatically be enabled after %s minutes" % (savedSearchName, disableDuration))
+			return("Successfully disabled '%s'. It will automatically be enabled after %s minutes" % (alertName, disableDuration))
 		else:
-			return("Successfully disabled '%s'" % savedSearchName)
+			return("Successfully disabled '%s'" % alertName)
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
-		raise Exception(errorMessage)
+		raise Exception(errorMessage)		
+				
 		
-		
-def enableAlert(savedSearchName):
+def enableAlert(alertName, namespace=None):
 	"""
 		Enables an alert.
 		Parameters:
-			savedSearchName (required) = the name of the saved search
+			alertName (required) = the name of the alert
+			namespace (optional) the name of the app where the alert is located. If not set, only global alerts are visible
 	"""
-	print("[ENABLE ALERT] alert=%s" % savedSearchName)
+	print("[ENABLE ALERT] alert=%s" % alertName)
 	# reformat saved search name for URL
-	savedSearchName = savedSearchName.replace(' ', '%20')
+	alertName = alertName.replace(' ', '%20')
+	url = BASE_URL + ("/services/saved/searches/%s?output_mode=json" % alertName)
+	if namespace:
+		url = BASE_URL + ("/servicesNS/%s/%s/saved/searches/%s?output_mode=json" % (USER, namespace, alertName))
 	
 	response, content = myhttp.request(
-		BASE_URL + ("/services/saved/searches/%s?output_mode=json" % savedSearchName), 
+		url, 
 		'POST', 
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)},
 		body=urllib.parse.urlencode({'disabled':False}))
@@ -613,49 +630,53 @@ def enableAlert(savedSearchName):
 	decodedContent = json.loads(content.decode('utf-8'))
 	
 	if response.status == 200:
-		return("Successfully enabled '%s'" % savedSearchName.replace('%20',' '))
+		return("Successfully enabled '%s'" % alertName.replace('%20',' '))
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
 	
 
-def autoEnableAlert(savedSearchName, disableDuration):
+def autoEnableAlert(namespace, alertName, disableDuration):
 	"""
 		Enables an alert after the specified time.
 		Parameters:
-			savedSearchName (required) = the name of the saved search
+			alertName (required) = the name of the app where the alert is located
+			alertName (required) = the name of the alert
 			disableDuration (required) = How long to disable the alert (in minutes)
 	"""
 	sleep(disableDuration * 60) # transform to minutes
-	print("[AUTO ENABLE ALERT] " + enableAlert(savedSearchName))
+	print("[AUTO ENABLE ALERT] " + enableAlert(alertName, namespace))
 	
 	
-def listDisabledAlerts(*searchStrings):
+def listDisabledAlerts(namespace=None, searchStrings=[]):
 	"""
 		Lists the names of disabled alerts. Returns results in JSON form.
 		Parameters:
+			namespace (optional) = the name of the app to search. If not set, only global alerts are visible
 			searchStrings (optional) = an array of search strings to filter results. Search strings are NOT case sensitive
 	"""
 	print("[LIST DISABLED ALERTS]")
+	url = BASE_URL + "/services/saved/searches?output_mode=json&count=0"
+	if namespace:
+		url = BASE_URL + ("/servicesNS/%s/%s/saved/searches?output_mode=json&count=0" % (USER, namespace))
+		
 	response, content = myhttp.request(
-		BASE_URL + "/services/saved/searches?output_mode=json&count=0", 
+		url, 
 		'GET', 
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 
 	decodedContent = json.loads(content.decode('utf-8'))
-	
+		
 	if response.status == 200:
 		listOfDisabledAlerts = []
+		searchStrings = [string.lower() for string in searchStrings]
 		
-		if searchStrings:
-			searchStrings = [string.lower() for string in searchStrings[0]]
-		
-			for entry in decodedContent["entry"]:
-				if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["actions"] and entry["content"]["disabled"]:
-					listOfDisabledAlerts.append(entry["name"])
-		else:
-			for entry in decodedContent["entry"]:
-				if entry["content"]["actions"] and entry["content"]["disabled"]:
+		for entry in decodedContent["entry"]:
+			if all(x in entry["name"].lower() for x in searchStrings) and entry["content"]["actions"] and entry["content"]["disabled"]:
+				if namespace:
+					if entry["acl"]["sharing"] != "global":
+						listOfDisabledAlerts.append(entry["name"])
+				else:
 					listOfDisabledAlerts.append(entry["name"])
 		
 		listOfDisabledAlerts = "%s" % listOfDisabledAlerts
@@ -665,19 +686,24 @@ def listDisabledAlerts(*searchStrings):
 		raise Exception(errorMessage)
 	
 
-def rescheduleAlert(savedSearchName, cronSchedule):
+def rescheduleAlert(alertName, cronSchedule, namespace=None):
 	"""
 		Reschedules an alert by passing in a cron schedule.
 		Parameters:
-			savedSearchName (required) = the name of the saved search
+			alertName (required) = the name of the alert
 			cronSchedule (required) = a cron schedule (i.e. to run at 30 minutes past each hour '30 * * * *')
+			namespace (optional) = the name of the app where the alert is located. If not set, only global alerts are visible
 	"""
-	print("[RESCHEDULE ALERT] alert=%s, schedule=%s" % (savedSearchName, cronSchedule))
-	# reformat saved search name for URL
-	savedSearchName = savedSearchName.replace(' ', '%20')
+	print("[RESCHEDULE ALERT] alert=%s, schedule=%s" % (alertName, cronSchedule))
+	# reformat alert name for URL
+	alertName = alertName.replace(' ', '%20')
+	url = BASE_URL + ("/services/saved/searches/%s?output_mode=json" % alertName)
+	if namespace:
+		url = BASE_URL + ("/servicesNS/%s/%s/saved/searches/%s?output_mode=json" % (USER, namespace, alertName))
+	
 	
 	response, content = myhttp.request(
-		BASE_URL + ("/services/saved/searches/%s?output_mode=json" % savedSearchName), 
+		url, 
 		'POST', 
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)},
 		body=urllib.parse.urlencode({'cron_schedule':cronSchedule}))
@@ -685,7 +711,7 @@ def rescheduleAlert(savedSearchName, cronSchedule):
 	decodedContent = json.loads(content.decode('utf-8'))
 	
 	if response.status == 200:
-		return("Successfully rescheduled '%s' with cron schedule: '%s'" % (savedSearchName.replace('%20',' '), cronSchedule))
+		return("Successfully rescheduled '%s' with cron schedule: '%s'" % (alertName.replace('%20',' '), cronSchedule))
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
@@ -694,7 +720,7 @@ def rescheduleAlert(savedSearchName, cronSchedule):
 	
 # ---------------------------------------- OTHER METHODS ----------------------------------------	
 	
-def listAppNames(*searchStrings):
+def listAppNames(searchStrings=[]):
 	"""
 		Lists the app names for all apps in the current Splunk instance
 		Parameters:
@@ -711,19 +737,21 @@ def listAppNames(*searchStrings):
 	if response.status == 200:
 		listOfApps = []
 		
-		if searchStrings:
-			searchStrings = [string.lower() for string in searchStrings[0]]	
+		searchStrings = [string.lower() for string in searchStrings]	
 			
-			for entry in decodedContent["entry"]:
-				if all(x in entry["name"].lower() for x in searchStrings):
-					listOfApps.append(entry["name"])
-		else:
-			for entry in decodedContent["entry"]:
-				listOfApps.append(entry["name"])
-		
+		for entry in decodedContent["entry"]:
+			if all(x in entry["name"].lower() for x in searchStrings):
+				listOfApps.append(entry["name"])\
+					
 		listOfApps = "%s" % listOfApps
 		return listOfApps.replace(',',',\n')
 	else:
 		errorMessage = json.loads(content.decode('utf-8'))["messages"][0]["text"]
 		raise Exception(errorMessage)
 
+				
+		
+
+		
+		
+		
