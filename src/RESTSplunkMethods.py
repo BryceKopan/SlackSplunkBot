@@ -214,20 +214,24 @@ def listReportNames(namespace=None, searchStrings=[]):
 		raise Exception(errorMessage)
 		
 	
-def runSavedSearch(savedSearchName, triggerActions=False):
+def runSavedSearch(savedSearchName, namespace=None, triggerActions=False):
 	"""
 		Runs a saved search. Returns results in JSON form.
 		Run 'listSavedSearches' to get the correct name.
 		Parameters:
 			savedSearchName (required) = the name of the saved Splunk search
+			namespace (optional) = the name of the app where the saved search is located. If not set, only global saved searches are visible
 			triggerActions (optional) = specify whether to trigger alert actions (Boolean)
 	"""
 	print("[RUN SAVED SEARCH]: %s" % savedSearchName)
 	# reformat saved search name for URL
 	savedSearchName = savedSearchName.replace(' ', '%20')
+	url = BASE_URL + "/services/saved/searches/%s/dispatch?output_mode=json&trigger_actions=%s" % (savedSearchName, triggerActions)
+	if namespace:
+		url = BASE_URL + "/servicesNS/%s/%s/saved/searches/%s/dispatch?output_mode=json&trigger_actions=%s" % (USER, namespace, savedSearchName, triggerActions)
 
 	response, content = myhttp.request(
-		(BASE_URL + "/services/saved/searches/%s/dispatch?output_mode=json&trigger_actions=%s" % (savedSearchName, triggerActions)), 
+		url, 
 		'POST', 
 		headers={'Authorization':('Splunk %s' % SESSION_KEY)})
 	
