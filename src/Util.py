@@ -1,8 +1,8 @@
 import inspect
 import commands.BotCommands as BotCommands
 import commands.SplunkCommands as SplunkCommands
-from wand.image import Image
-from wand.color import Color
+# from wand.image import Image
+# from wand.color import Color
 
 def formatResultsAsTable(results):
 	tableString = ''
@@ -116,27 +116,27 @@ def getCommandList():
 	botCommands.extend(inspect.getmembers(SplunkCommands, inspect.isfunction))
 	return botCommands
 	
-def convertPDFToPNG(pdfName):
-	pdfPath = 'pdf_files/{}.pdf'.format(pdfName)
-	pngPaths = []
+# def convertPDFToPNG(pdfName):
+	# pdfPath = 'pdf_files/{}.pdf'.format(pdfName)
+	# pngPaths = []
 	
-	with Image(filename=pdfPath, resolution=200) as source:
-		images=source.sequence
-		for index, singleImg in enumerate(images):
-			pngPath = 'pdf_files/{}{}.png'.format(pdfName, str(index))
-			img = Image(singleImg)
-			img.background_color = Color('white')
-			img.alpha_channel = 'remove'
+	# with Image(filename=pdfPath, resolution=200) as source:
+		# images=source.sequence
+		# for index, singleImg in enumerate(images):
+			# pngPath = 'pdf_files/{}{}.png'.format(pdfName, str(index))
+			# img = Image(singleImg)
+			# img.background_color = Color('white')
+			# img.alpha_channel = 'remove'
 			# img = removeSplunkBorderFromPNG(img)
-			img.save(filename=pngPath)
-			pngPaths.append(pngPath)
-	return pngPaths
+			# img.save(filename=pngPath)
+			# pngPaths.append(pngPath)
+	# return pngPaths
 
-def removeSplunkBorderFromPNG(img):
-	img.background_color = Color('snow4')
-	img.alpha_channel = 'remove'
-	img.trim(fuzz=50)
-	img.trim(fuzz=50)
-	img.trim()
-	return img
+# def removeSplunkBorderFromPNG(img):
+	# img.background_color = Color('snow4')
+	# img.alpha_channel = 'remove'
+	# img.trim(fuzz=50)
+	# img.trim(fuzz=50)
+	# img.trim()
+	# return img
 	

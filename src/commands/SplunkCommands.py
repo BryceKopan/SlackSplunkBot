@@ -51,9 +51,11 @@ def get_dashboard(commandParameters, channel):
 	HipChat.postNotification("Getting dashboard {} from {}".format(commandParameters[1], commandParameters[0]), channel)
 	Splunk.getDashboardPdf(commandParameters[0], commandParameters[1])
 	pdfName = commandParameters[0] + "_" + commandParameters[1]
-	pngPaths = Util.convertPDFToPNG(pdfName)
-	for path in pngPaths:
-		HipChat.postFile(path, channel)
+	pdfPath = 'pdf_files/{}.pdf'.format(pdfName)
+	HipChat.postFile(pdfPath, channel)
+	# pngPaths = Util.convertPDFToPNG(pdfName)
+	# for path in pngPaths:
+		# HipChat.postFile(path, channel)
 		
 def list_alerts(commandParameters, channel):
 	if(len(commandParameters) > 0):

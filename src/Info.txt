@@ -1,6 +1,6 @@
 ----------BUGS----------
 if a command starts with the same thing as another command IE: test and test_image. Calls may not work correctly
-	-----HipChat-----
+-----HipChat-----
 API throttle limit is 100 calls per 5 min. solution? dynamic monitoring rate
 ----------TODO----------
 dynamic monitoring rate starting at once every 3 seconds then going up as calls are used
