@@ -3,7 +3,7 @@ import RESTSplunkMethods as Splunk
 import Util
 import SimpleHipChat as HipChat
 
-enviroment = "LOCAL"
+enviroment = "ITEST"
 
 def list_saved_searches(commandParameters, channel):
 	"""  """
